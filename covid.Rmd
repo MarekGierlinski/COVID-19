@@ -20,7 +20,9 @@ myKable <- function(df, row.names=FALSE, col.names=NA, digits=2, bootstrap="cond
 ```
 
 ```{r constants}
-countries <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Belgium", "Japan", "South Korea")
+countries_eu <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Belgium")
+#countries <- c(countries_eu, "Japan", "South Korea")
+countries <- countries_eu
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey60", "black")
 ```
@@ -42,24 +44,32 @@ covid <- covid_raw %>%
   arrange(date) %>% 
   mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
   ungroup() %>% 
-  filter(tot_cases > 200 & country != "Cases on an international conveyance Japan")
+  filter(tot_cases > 200 & country != "Cases on an international conveyance Japan") %>% 
+  mutate(country = recode(country, "United States of America" = "United States"))
 covid_sel <- covid %>%
   filter(country %in% countries) %>% 
   filter(cases > 0)
 ```
 
 ```{r plot_function}
-basic_plot <- function(d, x="date", xlab="Date") {
+basic_plot <- function(d, x="date", xlab="Date", palette=cbPalette, shps=shapes) {
   d %>% 
     mutate(country = factor(country, levels=countries)) %>% 
   ggplot(aes_string(x=x, y="cases", colour="country", shape="country", group="country")) +
     theme_bw() +
     geom_line() +
     geom_point() +
-    scale_colour_manual(values=cbPalette) +
-    scale_shape_manual(values=shapes) +
+    scale_colour_manual(values=palette) +
+    scale_shape_manual(values=shps) +
     scale_y_log10() +
     labs(x=xlab, y="Cases")
+}
+
+shift_days <- function(d, shifts, day0) {
+  d %>% 
+    filter(cases > 100) %>% 
+    left_join(shifts, by="country") %>% 
+    mutate(days = as.integer(date) - shift - day0)
 }
 ```
 
@@ -115,11 +125,16 @@ g
 ggsave("fig/shifted.png", plot=g, device="png", width=5, height=3, dpi=300)
 ```
 
-```{r uk_italy, fig.width=6, fig.height=3}
-g <- covid_sel %>% 
-  filter(cases > 100 & country %in% c("Italy", "United Kingdom")) %>% 
-  left_join(shifts, by="country") %>% 
-  mutate(days = as.integer(date) - shift - ref_day0) %>% 
-  basic_plot(x="days", xlab="Normalized day")
+```{r us, fig.width=4, fig.height=3}
+d <- covid %>% shift_days(shifts, ref_day0)
+d_eu <- d %>% filter(country %in% countries_eu)
+d_us <- d %>% filter(country == "United States")
+g <- basic_plot(d_eu, x="days", xlab="Normalized day", palette=rep("grey",10), shps=rep(1, 10)) +
+  theme(legend.position = "none") +
+  geom_point(data=d_us, shape=21, fill="black", colour="black", size=3) +
+  geom_line(data=d_us, colour="black")
 g
+
+ggsave("fig/us_eu.png", plot=g, device="png", width=5, height=3, dpi=300)
+
 ```
