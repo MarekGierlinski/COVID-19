@@ -1,0 +1,100 @@
+---
+title: "Covid"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(kableExtra)
+library(tidyverse)
+library(readxl)
+library(glue)
+```
+
+```{r kable_functions}
+myKable <- function(df, row.names=FALSE, col.names=NA, digits=2, bootstrap="condensed", caption=NULL) {
+  kable(df, format="html", row.names=row.names, col.names=col.names, digits=digits, caption=caption) %>% kable_styling(bootstrap_options=bootstrap, full_width=FALSE, position="left", font_size=12)
+}
+```
+
+```{r constants}
+countries <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Belgium", "Japan", "South Korea")
+shapes <- c(15:18, 0:14)
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey60", "black")
+```
+
+```{r read_data, cache=TRUE}
+yesterday <- Sys.Date() - 1
+url <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xls")
+tmp <- tempfile()
+download.file(url, tmp, mode="wb")
+covid_raw <- read_excel(tmp)
+```
+
+
+```{r process_data}
+covid <- covid_raw %>% 
+  mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
+  rename(country = CountryExp, new_cases = NewConfCases) %>% 
+  group_by(country) %>% 
+  arrange(date) %>% 
+  mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
+  ungroup() %>% 
+  filter(tot_cases > 200 & country != "Cases on an international conveyance Japan")
+covid_sel <- covid %>%
+  filter(country %in% countries) %>% 
+  filter(cases > 0)
+```
+
+```{r plot_function}
+basic_plot <- function(d, x="date", xlab="Date") {
+  d %>% 
+    mutate(country = factor(country, levels=countries)) %>% 
+  ggplot(aes_string(x=x, y="cases", colour="country", shape="country", group="country")) +
+    theme_bw() +
+    geom_line() +
+    geom_point() +
+    scale_colour_manual(values=cbPalette) +
+    scale_shape_manual(values=shapes) +
+    scale_y_log10() +
+    labs(x=xlab, y="Cases")
+}
+```
+
+
+```{r all_plot, fig.width=6, fig.height=3}
+covid_sel %>%
+  mutate(country = factor(country, levels=countries)) %>% 
+  basic_plot()
+```
+
+```{r linear_models}
+dat <- covid %>% 
+  filter(cases > 100 & cases < 10000) %>%
+  mutate(lcases = log2(cases), day = as.integer(date)) %>% 
+  select(country, lcases, day)
+f <- lm(lcases ~ day, data=filter(dat, country=="Italy"))
+finv <- lm(day ~ lcases, data=filter(dat, country=="Italy"))
+ref_day0 <- finv$coefficients[1]
+ref_slope <- finv$coefficients[2]
+ref_10000 <- predict(finv, data.frame(lcases = log2(10000)))
+doubling_time <- 1 / f$coefficients[2] 
+
+shifts <- dat %>% 
+  group_by(country) %>% 
+  summarise(shift = mean(day - ref_slope * lcases) - ref_day0) %>% 
+  mutate(date10000 = as.Date(ref_10000 + shift, origin=as.Date("1970/01/01"))) %>% 
+  arrange(date10000)
+
+myKable(shifts)
+```
+
+Doubling time is `r round(doubling_time, 1)` days.
+
+```{r normalized_plot, fig.width=6, fig.height=3}
+covid_sel %>% 
+  filter(cases > 100) %>% 
+  left_join(shifts, by="country") %>% 
+  mutate(days = as.integer(date) - shift - ref_day0) %>% 
+  basic_plot(x="days", xlab="Normalized day")
+```
