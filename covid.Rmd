@@ -9,6 +9,8 @@ library(kableExtra)
 library(tidyverse)
 library(readxl)
 library(glue)
+
+if(!dir.exists("fig")) dir.create("fig")
 ```
 
 ```{r kable_functions}
@@ -63,9 +65,12 @@ basic_plot <- function(d, x="date", xlab="Date") {
 
 
 ```{r all_plot, fig.width=6, fig.height=3}
-covid_sel %>%
+g <- covid_sel %>%
   mutate(country = factor(country, levels=countries)) %>% 
   basic_plot()
+g
+
+ggsave("fig/cases.png", plot=g, device="png", width=5, height=3, dpi=300)
 ```
 
 ```{r linear_models}
@@ -91,10 +96,30 @@ myKable(shifts)
 
 Doubling time is `r round(doubling_time, 1)` days.
 
+```{r japan}
+fj <- lm(lcases ~ day, data=filter(dat, country=="Japan"))
+doubling_time_japan <- 1 / fj$coefficients[2] 
+```
+
+Doubling time for Japan is `r round(doubling_time_japan, 1)` days.
+
+
 ```{r normalized_plot, fig.width=6, fig.height=3}
-covid_sel %>% 
+g <- covid_sel %>% 
   filter(cases > 100) %>% 
   left_join(shifts, by="country") %>% 
   mutate(days = as.integer(date) - shift - ref_day0) %>% 
   basic_plot(x="days", xlab="Normalized day")
+
+g
+ggsave("fig/shifted.png", plot=g, device="png", width=5, height=3, dpi=300)
+```
+
+```{r uk_italy, fig.width=6, fig.height=3}
+g <- covid_sel %>% 
+  filter(cases > 100 & country %in% c("Italy", "United Kingdom")) %>% 
+  left_join(shifts, by="country") %>% 
+  mutate(days = as.integer(date) - shift - ref_day0) %>% 
+  basic_plot(x="days", xlab="Normalized day")
+g
 ```
