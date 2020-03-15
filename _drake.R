@@ -27,8 +27,10 @@ plots <- drake_plan(
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
   plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100, lab="Reported cases"),
   plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10, lab="Reported deaths"),
-  plot_uk = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100, ylab="Reported cases"),
-  plot_us = plot_country(covid, cntry="United States", what="cases", val.min=100, ylab="Reported cases")
+  plot_uk_cases = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100, ylab="Reported cases"),
+  plot_uk_deaths = plot_country(covid, cntry="United Kingdom", what="deaths", val.min=10, ylab="Reported deaths"),
+  plot_us_cases = plot_country(covid, cntry="United States", what="cases", val.min=100, ylab="Reported cases"),
+  plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10, ylab="Reported deaths")
 )
 
 figs <- plots %>% 

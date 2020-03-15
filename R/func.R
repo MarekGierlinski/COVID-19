@@ -120,6 +120,7 @@ plot_country <- function(cvd, cntry="United Kingdom",
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
   basic_plot(d_eu, x="days", y=what, xlab="Normalized day", ylab=ylab, palette=rep("grey",10), shps=rep(1, 10)) +
+    ggtitle(cntry) +
     theme(legend.position = "none") +
     geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
     geom_line(data=d_sel, colour="black")
