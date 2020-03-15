@@ -1,16 +1,12 @@
 ---
-title: "Covid"
+title: "Covid-19"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, cache=FALSE)
 library(kableExtra)
-library(tidyverse)
-library(readxl)
-library(glue)
 
-if(!dir.exists("fig")) dir.create("fig")
 ```
 
 ```{r kable_functions}
@@ -19,60 +15,10 @@ myKable <- function(df, row.names=FALSE, col.names=NA, digits=2, bootstrap="cond
 }
 ```
 
-```{r constants}
-countries_eu <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Belgium")
-#countries <- c(countries_eu, "Japan", "South Korea")
-countries <- countries_eu
-shapes <- c(15:18, 0:14)
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey60", "black")
+
+```{r read_data}
+loadd(covid. covid_sel)
 ```
-
-```{r read_data, cache=TRUE}
-yesterday <- Sys.Date() - 1
-url <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xls")
-tmp <- tempfile()
-download.file(url, tmp, mode="wb")
-covid_raw <- read_excel(tmp)
-```
-
-
-```{r process_data}
-covid <- covid_raw %>% 
-  mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
-  rename(country = CountryExp, new_cases = NewConfCases) %>% 
-  group_by(country) %>% 
-  arrange(date) %>% 
-  mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
-  ungroup() %>% 
-  filter(tot_cases > 200 & country != "Cases on an international conveyance Japan") %>% 
-  mutate(country = recode(country, "United States of America" = "United States"))
-covid_sel <- covid %>%
-  filter(country %in% countries) %>% 
-  filter(cases > 0)
-```
-
-```{r plot_function}
-basic_plot <- function(d, x="date", xlab="Date", palette=cbPalette, shps=shapes) {
-  d %>% 
-    mutate(country = factor(country, levels=countries)) %>% 
-  ggplot(aes_string(x=x, y="cases", colour="country", shape="country", group="country")) +
-    theme_bw() +
-    geom_line() +
-    geom_point() +
-    scale_colour_manual(values=palette) +
-    scale_shape_manual(values=shps) +
-    scale_y_log10() +
-    labs(x=xlab, y="Cases")
-}
-
-shift_days <- function(d, shifts, day0) {
-  d %>% 
-    filter(cases > 100) %>% 
-    left_join(shifts, by="country") %>% 
-    mutate(days = as.integer(date) - shift - day0)
-}
-```
-
 
 ```{r all_plot, fig.width=6, fig.height=3}
 g <- covid_sel %>%
@@ -80,61 +26,105 @@ g <- covid_sel %>%
   basic_plot()
 g
 
-ggsave("fig/cases.png", plot=g, device="png", width=5, height=3, dpi=300)
+ggsave("fig/cases.png", plot=g, device="png", width=6, height=3, dpi=300)
 ```
 
 ```{r linear_models}
-dat <- covid %>% 
-  filter(cases > 100 & cases < 10000) %>%
-  mutate(lcases = log2(cases), day = as.integer(date)) %>% 
-  select(country, lcases, day)
-f <- lm(lcases ~ day, data=filter(dat, country=="Italy"))
-finv <- lm(day ~ lcases, data=filter(dat, country=="Italy"))
-ref_day0 <- finv$coefficients[1]
-ref_slope <- finv$coefficients[2]
-ref_10000 <- predict(finv, data.frame(lcases = log2(10000)))
-doubling_time <- 1 / f$coefficients[2] 
+shifts_cases <- linear_shifts(covid, "cases")
+shifts_deaths <- linear_shifts(covid, "deaths",  val.min=10)
 
-shifts <- dat %>% 
-  group_by(country) %>% 
-  summarise(shift = mean(day - ref_slope * lcases) - ref_day0) %>% 
-  mutate(date10000 = as.Date(ref_10000 + shift, origin=as.Date("1970/01/01"))) %>% 
-  arrange(date10000)
-
-myKable(shifts)
+myKable(shifts_cases)
+myKable(shifts_deaths)
 ```
-
-Doubling time is `r round(doubling_time, 1)` days.
-
-```{r japan}
-fj <- lm(lcases ~ day, data=filter(dat, country=="Japan"))
-doubling_time_japan <- 1 / fj$coefficients[2] 
-```
-
-Doubling time for Japan is `r round(doubling_time_japan, 1)` days.
 
 
 ```{r normalized_plot, fig.width=6, fig.height=3}
-g <- covid_sel %>% 
-  filter(cases > 100) %>% 
-  left_join(shifts, by="country") %>% 
-  mutate(days = as.integer(date) - shift - ref_day0) %>% 
-  basic_plot(x="days", xlab="Normalized day")
-
+g <- plot_shifted(covid_sel, what="cases")
 g
-ggsave("fig/shifted.png", plot=g, device="png", width=5, height=3, dpi=300)
+ggsave("fig/shifted.png", plot=g, device="png", width=6, height=3, dpi=300)
 ```
 
-```{r us, fig.width=4, fig.height=3}
-d <- covid %>% shift_days(shifts, ref_day0)
+```{r uk, fig.width=4, fig.height=3}
+d <- covid %>% shift_days(shifts_cases)
 d_eu <- d %>% filter(country %in% countries_eu)
-d_us <- d %>% filter(country == "United States")
+d_uk <- d %>% filter(country == "United Kingdom")
 g <- basic_plot(d_eu, x="days", xlab="Normalized day", palette=rep("grey",10), shps=rep(1, 10)) +
   theme(legend.position = "none") +
-  geom_point(data=d_us, shape=21, fill="black", colour="black", size=3) +
-  geom_line(data=d_us, colour="black")
+  geom_point(data=d_uk, shape=21, fill="royalblue", colour="black", size=2.5) +
+  geom_line(data=d_uk, colour="black")
 g
 
-ggsave("fig/us_eu.png", plot=g, device="png", width=5, height=3, dpi=300)
+ggsave("fig/uk_eu.png", plot=g, device="png", width=6, height=3, dpi=300)
+```
+
+```{r china, fig.width=4, fig.height=3}
+g <- covid %>%
+  filter(country=="China") %>%
+ggplot(aes(date, new_cases)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank()) +
+  geom_point() +
+  ylim(0, 4500) +
+  labs(x = "Date", y = "Daily reported cases")
+g
+
+ggsave("fig/china.png", plot=g, device="png", width=6, height=3, dpi=300)
+```
+
+```{r deaths_ratio, fig.width=5, fig.height=3}
+d <- covid %>% 
+  group_by(country) %>% 
+  summarise(deaths = sum(NewDeaths), cases = sum(new_cases)) %>% 
+  mutate(ratio = deaths / cases) %>% 
+  arrange(ratio) %>% 
+  mutate(country = as_factor(country)) %>% 
+  filter(deaths > 0) %>% 
+  mutate(rate = map2(deaths, cases, ~prop.test(.x, .y, conf.level=0.95) %>% broom::tidy())) %>%
+  unnest(rate)
+  
+g <- ggplot(d, aes(x=country, y=estimate, ymin=conf.low, ymax=conf.high)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank()) +
+  geom_errorbar(width=0.3) +
+  geom_point() +
+  coord_flip() +
+  labs(x=NULL, y="Reported deaths / reported cases") +
+  geom_hline(yintercept = 0.034, colour="red", linetype="dashed")
+g
+
+ggsave("fig/death_ratio.png", plot=g, device="png", width=6, height=3, dpi=300)
+```
+
+
+```{r slopes, fig.width=4, fig.height=3}
+g <- plot_doubling_times(covid, "cases", val.min=100, lab="Reported cases")
+g
+ggsave("fig/doubling_cases.png", plot=g, device="png", width=6, height=3, dpi=300)
+
+g <- plot_doubling_times(covid, "deaths", val.min=10, lab="Reported deaths")
+g
+ggsave("fig/doubling_deahts.png", plot=g, device="png", width=6, height=3, dpi=300)
+```
+
+
+```{r slope_explanation, fig.width=4, fig.height=4}
+g <- covid %>%
+  shift_days(shifts_cases) %>% 
+  filter(country == "United Kingdom" & cases > 100) %>% 
+ggplot(aes(x=days, y=log2(cases))) +
+  theme_bw() +
+  geom_smooth(method = "lm", level=0.95) +
+  geom_point(size=1.5) +
+  labs(x= "Normalized date", y=expression(log[2]~cases))
+
+g
+ggsave("fig/slope_explanation.png", plot=g, device="png", width=6, height=3, dpi=300)
+```
+
+
+```{r normalized_deaths}
+g <- plot_shifted(covid_sel, what="deaths", val.min=10)
+g
+ggsave("fig/deaths.png", plot=g, device="png", width=6, height=3, dpi=300)
 
 ```
