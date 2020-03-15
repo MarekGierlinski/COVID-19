@@ -16,21 +16,16 @@ read_data <- drake_plan(
   covid_sel = covid %>% filter(country %in% countries_eu) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_eu))
 )
 
-find_shifts <- drake_plan(
-  shifts_cases = linear_shifts(covid, "cases"),
-  shifts_deaths = linear_shifts(covid, "deaths",  val.min=10)
-)
-
 plots <- drake_plan(
   plot_cases = basic_plot(covid_sel),
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
-  plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100, lab="Reported cases"),
-  plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10, lab="Reported deaths"),
-  plot_uk_cases = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100, ylab="Reported cases"),
-  plot_uk_deaths = plot_country(covid, cntry="United Kingdom", what="deaths", val.min=10, ylab="Reported deaths"),
-  plot_us_cases = plot_country(covid, cntry="United States", what="cases", val.min=100, ylab="Reported cases"),
-  plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10, ylab="Reported deaths")
+  plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100),
+  plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
+  plot_uk_cases = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100),
+  plot_uk_deaths = plot_country(covid, cntry="United Kingdom", what="deaths", val.min=10),
+  plot_us_cases = plot_country(covid, cntry="United States", what="cases", val.min=100),
+  plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10)
 )
 
 figs <- plots %>% 
@@ -49,7 +44,6 @@ save_figures <- drake_plan(
 
 plan <- bind_rows(
   read_data,
-  find_shifts,
   plots,
   save_figures
 )

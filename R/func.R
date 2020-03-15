@@ -101,25 +101,27 @@ get_doubling_times <- function(cvd, what="cases", val.min=100) {
     mutate(country = as_factor(country))
 }
 
-plot_doubling_times <- function(cvd, what="cases", val.min=100, lab="Reported cases") {
+plot_doubling_times <- function(cvd, what="cases", val.min=100) {
   get_doubling_times(cvd, what, val.min=val.min) %>% 
     ggplot(aes(x=country, y=slope, ymin=lo, ymax=up)) +
     theme_bw() +
     geom_errorbar(width=0.3) +
     geom_point() +
     coord_flip() +
-    labs(x=NULL, y=glue::glue("{lab} doubling time (day)"))
+    labs(x=NULL, y=glue::glue("Reported {what} doubling time (day)"))
 }
 
 
 plot_country <- function(cvd, cntry="United Kingdom",
-                         what="cases", val.min=100, ylab="Reported cases") {
+                         what="cases", val.min=100) {
   shifts <- linear_shifts(cvd, what=what, val.min=val.min)
   d <- cvd %>%
     shift_days(shifts, what = what, val.min = val.min)
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
-  basic_plot(d_eu, x="days", y=what, xlab="Normalized day", ylab=ylab, palette=rep("grey",10), shps=rep(1, 10)) +
+  basic_plot(d_eu, x="days", y=what, xlab="Normalized day",
+             ylab=glue::glue("Reported what"),
+             palette=rep("grey",10), shps=rep(1, 10)) +
     ggtitle(cntry) +
     theme(legend.position = "none") +
     geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
