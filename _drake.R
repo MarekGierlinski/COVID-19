@@ -25,13 +25,14 @@ plots <- drake_plan(
   plot_cases = basic_plot(covid_sel),
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
-  plot_doubling_cases = plot_doubling_times(covid, "cases", val.min=100, lab="Reported cases"),
-  plot_doubling_deaths = plot_doubling_times(covid, "deaths", val.min=10, lab="Reported deaths")
+  plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100, lab="Reported cases"),
+  plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10, lab="Reported deaths"),
+  plot_uk = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100, ylab="Reported cases"),
+  plot_us = plot_country(covid, cntry="United States", what="cases", val.min=100, ylab="Reported cases")
 )
 
 figs <- plots %>% 
-  rename(name = target) %>% 
-  select(-command) %>% 
+  select(-command, name = target) %>% 
   mutate(
     obj = rlang::syms(name),
     filename = paste0("fig/", str_remove(name, "plot_"), ".png")
@@ -43,8 +44,6 @@ save_figures <- drake_plan(
     transform = map(.data = !!figs)
   )
 )
-
-
 
 plan <- bind_rows(
   read_data,

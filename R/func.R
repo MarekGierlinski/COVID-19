@@ -1,6 +1,6 @@
 countries_eu <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Switzerland", "Spain")
 shapes <- c(15:18, 0:14)
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey60", "black")
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey30", "grey70", "black")
 
 
 read_covid <- function() {
@@ -43,7 +43,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab="Cases", palett
 
 shift_days <- function(d, shifts, what="cases", val.min=100) {
   d %>% 
-    filter(!!what > val.min) %>% 
+    filter(!!sym(what) > val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref)
 }
@@ -109,4 +109,18 @@ plot_doubling_times <- function(cvd, what="cases", val.min=100, lab="Reported ca
     geom_point() +
     coord_flip() +
     labs(x=NULL, y=glue::glue("{lab} doubling time (day)"))
+}
+
+
+plot_country <- function(cvd, cntry="United Kingdom",
+                         what="cases", val.min=100, ylab="Reported cases") {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min)
+  d <- cvd %>%
+    shift_days(shifts, what = what, val.min = val.min)
+  d_eu <- d %>% filter(country %in% countries_eu)
+  d_sel <- d %>% filter(country == cntry)
+  basic_plot(d_eu, x="days", y=what, xlab="Normalized day", ylab=ylab, palette=rep("grey",10), shps=rep(1, 10)) +
+    theme(legend.position = "none") +
+    geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
+    geom_line(data=d_sel, colour="black")
 }
