@@ -13,13 +13,13 @@ read_covid <- function() {
 
 process_covid <- function(cvd) {
   cvd %>% 
-    mutate(CountryExp = recode(CountryExp, `United kingdom` = "United Kingdom")) %>% # spelling mistake
+    mutate(CountryExp = recode(CountryExp, `United kingdom` = "United Kingdom", switzerland = "Switzerland")) %>% # spelling mistake
     mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
-    rename(country = CountryExp, new_cases = NewConfCases) %>% 
+    rename(country = CountryExp, new_cases = NewConfCases, new_deaths=NewDeaths) %>% 
     group_by(country) %>% 
     arrange(date) %>% 
     mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
-    mutate(deaths = cumsum(NewDeaths)) %>% 
+    mutate(deaths = cumsum(new_deaths)) %>% 
     ungroup() %>% 
     filter(tot_cases > 200 & country != "Cases on an international conveyance Japan") %>% 
     mutate(country = recode(country, "United States of America" = "United States"))
@@ -43,7 +43,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab="Cases", palett
 
 shift_days <- function(d, shifts, what="cases", val.min=100) {
   d %>% 
-    filter(!!sym(what) > val.min) %>% 
+    filter(!!sym(what) >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref)
 }
@@ -52,7 +52,7 @@ plot_shifted <- function(cvd, what="cases", val.min=100) {
   shifts <- linear_shifts(cvd, what=what, val.min=val.min)
   cvd %>% 
     mutate(value = !!sym(what)) %>% 
-    filter(value > val.min) %>% 
+    filter(value >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
     basic_plot(x="days", y="value", xlab="Normalized day", ylab=what)
@@ -61,7 +61,7 @@ plot_shifted <- function(cvd, what="cases", val.min=100) {
 linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100) {
   dat <- cvd %>%
     mutate(value = !!sym(what)) %>% 
-    filter(value > val.min & value < 10000) %>%
+    filter(value >= val.min & value < 10000) %>%
     mutate(lval = log2(value), day = as.integer(date)) %>% 
     select(country, lval, day)
   
@@ -81,7 +81,7 @@ linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100
 get_doubling_times <- function(cvd, what="cases", val.min=100) {
   cvd %>% 
     mutate(value = !!sym(what)) %>% 
-    filter(value > val.min & cases < 10000 & country != "China") %>% 
+    filter(value >= val.min & cases < 10000 & country != "China") %>% 
     mutate(lval = log2(value), day = as.integer(date)) %>% 
     group_by(country) %>%
     group_split() %>% 
@@ -120,10 +120,51 @@ plot_country <- function(cvd, cntry="United Kingdom",
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
   basic_plot(d_eu, x="days", y=what, xlab="Normalized day",
-             ylab=glue::glue("Reported what"),
+             ylab=glue::glue("Reported {what}"),
              palette=rep("grey",10), shps=rep(1, 10)) +
     ggtitle(cntry) +
     theme(legend.position = "none") +
     geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
     geom_line(data=d_sel, colour="black")
+}
+
+plot_country_fit <- function(cvd, cntry="Italy",
+                         what="cases", val.min=100, val.max=10000) {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min)
+  d <- cvd %>%
+    filter(country == cntry) %>% 
+    shift_days(shifts, what = what, val.min = val.min) %>%
+    mutate(value = !!sym(what), lval = log10(value)) 
+  df <- d %>% filter(value >= val.min & value <= val.max)
+  fit <- lm(lval ~ days, data=df)
+  x <- d$days
+  pred <- predict(fit, tibble(days=x), interval="confidence", level=0.95) %>% 
+    as_tibble() %>% 
+    mutate(days = x)
+
+  ggplot(d, aes(x=days, y=lval)) +
+    theme_bw() +
+    geom_ribbon(data = pred, aes(x=days, y=NULL, ymin=lwr, ymax=upr), fill="grey70", alpha=0.3) +
+    geom_line(data = pred, aes(x=days, y=fit, group=1), colour="grey30") +
+    geom_point(size=1.5)+
+    labs(x="Normalized day", y=glue::glue("log10 {what}"), title=cntry)
+}
+
+plot_daily_cases <- function(cvd, what="new_cases", val.min=10, point.size=0.7, text.size=7, ncol=7) {
+  cvd %>% 
+    mutate(value = !!sym(what)) %>% 
+    filter(value > val.min) %>% 
+    ggplot(aes(x=date, y=value, group=country)) +
+    geom_line(colour="grey70") +
+    geom_point(size=point.size) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      strip.text.x = element_text(margin = margin(0,0,0,0, "cm")),
+      axis.text.x = element_text(angle=45, hjust=1, size = text.size-2),
+      text = element_text(size = text.size)
+    ) +
+    scale_y_log10() +
+    facet_wrap(~ country, scales="free", ncol=ncol) +
+    labs(x = NULL, y = glue::glue("New reported {what}"))
 }

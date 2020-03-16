@@ -18,6 +18,7 @@ read_data <- drake_plan(
 
 plots <- drake_plan(
   plot_cases = basic_plot(covid_sel),
+  plot_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
   plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100),
@@ -25,7 +26,10 @@ plots <- drake_plan(
   plot_uk_cases = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100),
   plot_uk_deaths = plot_country(covid, cntry="United Kingdom", what="deaths", val.min=10),
   plot_us_cases = plot_country(covid, cntry="United States", what="cases", val.min=100),
-  plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10)
+  plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10),
+  plot_new_cases = plot_daily_cases(covid, what="new_cases"),
+  plot_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=3),
+  plot_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
 )
 
 figs <- plots %>% 
