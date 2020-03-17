@@ -168,3 +168,49 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=10, point.size=0.7, 
     facet_wrap(~ country, scales="free", ncol=ncol) +
     labs(x = NULL, y = glue::glue("New reported {what}"))
 }
+
+
+plot_derivative <- function(cvd, cntry="United Kingdom",
+                         what="cases", val.min=100, span=2) {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min)
+  d <- cvd %>%
+    filter(country == cntry) %>% 
+    shift_days(shifts, what = what, val.min = val.min) %>%
+    mutate(value = !!sym(what), lval = log2(value))
+  fit <- loess(lval ~ days, data=d, span=span)
+  xs <- seq(min(d$days), max(d$days), 0.1)
+  pred_loess <- predict(fit, tibble(days=xs), se=TRUE) 
+  pred <- tibble(
+    x = xs,
+    y = pred_loess$fit,
+    se = pred_loess$se.fit,
+    y_lo = y - se,
+    y_up = y + se
+  )
+  dif <- tibble(
+    x = rowMeans(embed(xs, 2)),
+    y = diff(pred$y) / diff(pred$x),
+    dbl = 1 / y
+  )
+
+  xlim <- c(min(xs), max(xs))
+  g1 <- ggplot(d) +
+    theme_bw() +
+    geom_point(aes(x=days, y=lval / log2(10))) +
+    geom_line(data=pred, aes(x=x, y=y / log2(10))) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    labs(x=NULL, y=glue::glue("log10 {what}"), title=cntry) +
+    xlim(xlim)
+  g2 <- ggplot(dif, aes(x=x, y=dbl)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    geom_line() +
+    labs(x = "Normalized day", y = "Doubling time") +
+    xlim(xlim)
+  plot_grid(g1, g2, ncol=1, rel_heights = c(1,0.6), align="v")
+  
+}

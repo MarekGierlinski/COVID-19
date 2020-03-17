@@ -4,6 +4,7 @@ suppressPackageStartupMessages({
   library(glue)
   library(broom)
   library(drake)
+  library(cowplot)
 })
 
 source("R/func.R")
@@ -30,6 +31,10 @@ plots <- drake_plan(
   plot_new_cases = plot_daily_cases(covid, what="new_cases"),
   plot_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=3),
   plot_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
+  plot_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
+  plot_diff_italy = plot_derivative(covid, cntry="Italy"),
+  plot_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
+  plot_diff_italy_deaths = plot_derivative(covid, cntry="Italy", what="deaths", val.min=10, span=1.3)
 )
 
 figs <- plots %>% 
