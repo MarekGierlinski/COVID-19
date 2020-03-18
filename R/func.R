@@ -160,6 +160,7 @@ plot_country_fit <- function(cvd, cntry="Italy",
 }
 
 plot_daily_cases <- function(cvd, what="new_cases", val.min=10, point.size=0.7, text.size=7, ncol=7) {
+  swhat <- str_remove(what, "new_")
   cvd %>% 
     mutate(value = !!sym(what)) %>% 
     filter(value > val.min) %>% 
@@ -170,12 +171,13 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=10, point.size=0.7, 
     theme(
       panel.grid = element_blank(),
       strip.text.x = element_text(margin = margin(0,0,0,0, "cm")),
-      axis.text.x = element_text(angle=45, hjust=1, size = text.size-2),
+      axis.text.x = element_text(size = text.size-2),
       text = element_text(size = text.size)
     ) +
     scale_y_log10() +
+    scale_x_date(guide = guide_axis(check.overlap = TRUE)) +
     facet_wrap(~ country, scales="free", ncol=ncol) +
-    labs(x = NULL, y = glue::glue("New reported {what}"))
+    labs(x = NULL, y = glue::glue("New reported daily {swhat}"))
 }
 
 

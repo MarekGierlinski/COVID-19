@@ -29,7 +29,7 @@ plots <- drake_plan(
   plot_us_cases = plot_country(covid, cntry="United States", what="cases", val.min=100),
   plot_us_deaths = plot_country(covid, cntry="United States", what="deaths", val.min=10),
   plot_new_cases = plot_daily_cases(covid, what="new_cases"),
-  plot_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=3),
+  plot_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=5, val.min = 1),
   plot_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
   plot_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
   plot_diff_italy = plot_derivative(covid, cntry="Italy"),
