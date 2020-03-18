@@ -5,28 +5,38 @@ cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 read_covid <- function() {
   yesterday <- Sys.Date() - 1
-  url <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xls")
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xlsx")
   tmp <- tempfile()
-  download.file(url, tmp, mode="wb")
+  download.file(urlc, tmp, mode="wb")
   read_excel(tmp)
 }
 
 process_covid <- function(cvd) {
   cvd %>% 
-    mutate(CountryExp = recode(CountryExp, `United kingdom` = "United Kingdom", switzerland = "Switzerland")) %>% # spelling mistake
+    rename(
+      country = `Countries and territories`,
+      new_cases = Cases,
+      new_deaths = Deaths
+    ) %>%
+    mutate(country = str_replace_all(country, "_", " ")) %>% 
+    mutate(country = recode(country,
+      'United States of America' = "United States"
+    )) %>%
     mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
-    rename(country = CountryExp, new_cases = NewConfCases, new_deaths=NewDeaths) %>% 
     group_by(country) %>% 
     arrange(date) %>% 
     mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
     mutate(deaths = cumsum(new_deaths)) %>% 
     ungroup() %>% 
-    filter(tot_cases > 200 & country != "Cases on an international conveyance Japan") %>% 
-    mutate(country = recode(country, "United States of America" = "United States"))
+    filter(
+      tot_cases > 200 &
+      country != "Cases on an international conveyance Japan"
+    )
 }
 
-basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab="Cases", palette=cbPalette, shps=shapes, point.size=1) {
+basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1) {
   brks <- rep(c(1, 2, 5), 5) * 10^sort(rep(0:4,3))
+  if(is.null(ylab)) ylab = glue("Reported {y}")
   d %>% 
     ggplot(aes_string(x=x, y=y, colour="country", shape="country", group="country")) +
     theme_bw() +
@@ -55,7 +65,7 @@ plot_shifted <- function(cvd, what="cases", val.min=100) {
     filter(value >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
-    basic_plot(x="days", y="value", xlab="Normalized day", ylab=what)
+    basic_plot(x="days", y="value", ylab=glue("Reported {what}"), xlab="Normalized day")
 }
 
 linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100) {
@@ -120,7 +130,6 @@ plot_country <- function(cvd, cntry="United Kingdom",
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
   basic_plot(d_eu, x="days", y=what, xlab="Normalized day",
-             ylab=glue::glue("Reported {what}"),
              palette=rep("grey",10), shps=rep(1, 10)) +
     ggtitle(cntry) +
     theme(legend.position = "none") +
