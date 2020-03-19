@@ -229,3 +229,31 @@ plot_derivative <- function(cvd, cntry="United Kingdom",
   plot_grid(g1, g2, ncol=1, rel_heights = c(1,0.6), align="v")
   
 }
+
+
+
+plot_death_ratio <- function(cvd, text.size=8, mortality=0.034) {
+  d <- cvd %>% 
+    group_by(country) %>% 
+    summarise(deaths = sum(new_deaths), cases = sum(new_cases)) %>% 
+    mutate(ratio = deaths / cases) %>% 
+    arrange(ratio) %>% 
+    mutate(country = as_factor(country)) %>% 
+    filter(deaths > 0) %>% 
+    mutate(rate = map2(deaths, cases, ~prop.test(.x, .y, conf.level=0.95) %>% broom::tidy())) %>%
+    unnest(rate)
+  
+  g <- ggplot(d, aes(x=country, y=estimate, ymin=conf.low, ymax=conf.high)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank(),
+      text = element_text(size = text.size)
+    ) +
+    geom_errorbar(width=0.3) +
+    geom_point() +
+    coord_flip() +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$conf.high) * 1.03)) +
+    labs(x=NULL, y="Reported deaths / reported cases") +
+    geom_hline(yintercept = mortality, colour="red", linetype="dashed")
+  g
+}

@@ -34,7 +34,8 @@ plots <- drake_plan(
   plot_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
   plot_diff_italy = plot_derivative(covid, cntry="Italy"),
   plot_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
-  plot_diff_italy_deaths = plot_derivative(covid, cntry="Italy", what="deaths", val.min=10, span=1.3)
+  plot_diff_italy_deaths = plot_derivative(covid, cntry="Italy", what="deaths", val.min=10, span=1.3),
+  plot_ratio = plot_death_ratio(covid, mortality=0.034)
 )
 
 figs <- plots %>% 
