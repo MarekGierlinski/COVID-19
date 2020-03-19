@@ -5,10 +5,11 @@ cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 read_covid <- function() {
   yesterday <- Sys.Date() - 1
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xlsx")
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xls")
+  stopifnot(RCurl::url.exists(urlc))
   tmp <- tempfile()
   download.file(urlc, tmp, mode="wb")
-  read_excel(tmp)
+  readxl::read_excel(tmp)
 }
 
 process_covid <- function(cvd) {
@@ -159,24 +160,27 @@ plot_country_fit <- function(cvd, cntry="Italy",
     labs(x="Normalized day", y=glue::glue("log10 {what}"), title=cntry)
 }
 
-plot_daily_cases <- function(cvd, what="new_cases", val.min=10, point.size=0.7, text.size=7, ncol=7) {
+plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, text.size=7, ncol=9, min.date=as.Date("2020-01-10")) {
   swhat <- str_remove(what, "new_")
   cvd %>% 
+    filter(date > min.date) %>% 
     mutate(value = !!sym(what)) %>% 
     filter(value > val.min) %>% 
-    ggplot(aes(x=date, y=value, group=country)) +
-    geom_line(colour="grey70") +
+  ggplot(aes(x=date, y=value, group=country)) +
+    #geom_line(colour="grey70") +
     geom_point(size=point.size) +
+    geom_smooth(method="loess", formula="y ~ x", span=1.5, se=FALSE, colour="red", alpha=0.2, size=0.5) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
       strip.text.x = element_text(margin = margin(0,0,0,0, "cm")),
       axis.text.x = element_text(size = text.size-2),
-      text = element_text(size = text.size)
+      text = element_text(size = text.size),
+      panel.spacing=unit(0, "cm")
     ) +
-    scale_y_log10() +
-    scale_x_date(guide = guide_axis(check.overlap = TRUE)) +
-    facet_wrap(~ country, scales="free", ncol=ncol) +
+    scale_y_log10(limits=c(val.min,10^4)) +
+    scale_x_date(guide = guide_axis(check.overlap = TRUE), breaks=as.Date(c("2020-02-01", "2020-03-01")), labels=c("1 Feb", "1 Mar")) +
+    facet_wrap(~ country, scales="fixed", ncol=ncol) +
     labs(x = NULL, y = glue::glue("New reported daily {swhat}"))
 }
 
