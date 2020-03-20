@@ -5,7 +5,7 @@ cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
 
 read_covid <- function() {
   yesterday <- Sys.Date() - 1
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xls")
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xlsx")
   stopifnot(RCurl::url.exists(urlc))
   tmp <- tempfile()
   download.file(urlc, tmp, mode="wb")
@@ -69,10 +69,10 @@ plot_shifted <- function(cvd, what="cases", val.min=100) {
     basic_plot(x="days", y="value", ylab=glue("Reported {what}"), xlab="Normalized day")
 }
 
-linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100) {
+linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100, val.max=1000) {
   dat <- cvd %>%
     mutate(value = !!sym(what)) %>% 
-    filter(value >= val.min & value < 10000) %>%
+    filter(value >= val.min & value <= val.max) %>%
     mutate(lval = log2(value), day = as.integer(date)) %>% 
     select(country, lval, day)
   

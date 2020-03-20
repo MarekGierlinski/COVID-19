@@ -22,7 +22,7 @@ plots <- drake_plan(
   plot_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
-  plot_doubling_cases = plot_doubling_times(covid, what="cases", val.min=100),
+  plot_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
   plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
   plot_uk_cases = plot_country(covid, cntry="United Kingdom", what="cases", val.min=100),
   plot_uk_deaths = plot_country(covid, cntry="United Kingdom", what="deaths", val.min=10),
