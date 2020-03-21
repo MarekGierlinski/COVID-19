@@ -1,12 +1,15 @@
-countries_eu <- c("Italy", "United Kingdom", "France", "Germany", "Netherlands", "Sweden", "Switzerland", "Spain")
+countries_eu <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal")
 shapes <- c(15:18, 0:14)
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey30", "grey70", "black")
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "black")
 
-
-read_covid <- function() {
+get_url <- function() {
   yesterday <- Sys.Date() - 1
   urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xlsx")
   stopifnot(RCurl::url.exists(urlc))
+  urlc
+}
+
+read_covid <- function(urlc) {
   tmp <- tempfile()
   download.file(urlc, tmp, mode="wb")
   readxl::read_excel(tmp)
@@ -42,7 +45,9 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
     ggplot(aes_string(x=x, y=y, colour="country", shape="country", group="country")) +
     theme_bw() +
     theme(
-      panel.grid.minor = element_blank()
+      panel.grid.minor = element_blank(),
+      legend.key.size = unit(0.4, "cm"),
+      legend.title=element_blank()
     ) +
     geom_line() +
     geom_point(size=point.size) +
@@ -89,10 +94,10 @@ linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100
     mutate(ref = ref_day0)
 }
 
-get_doubling_times <- function(cvd, what="cases", val.min=100) {
+get_doubling_times <- function(cvd, what="cases", val.min=100, val.max=10000) {
   cvd %>% 
     mutate(value = !!sym(what)) %>% 
-    filter(value >= val.min & cases < 10000 & country != "China") %>% 
+    filter(value >= val.min & value < val.max & country != "China") %>% 
     mutate(lval = log2(value), day = as.integer(date)) %>% 
     group_by(country) %>%
     group_split() %>% 
@@ -109,11 +114,11 @@ get_doubling_times <- function(cvd, what="cases", val.min=100) {
       )
     }) %>% 
     arrange(slope) %>% 
-    mutate(country = as_factor(country))
+    mutate(country = factor(country, levels=as.character(country)))
 }
 
-plot_doubling_times <- function(cvd, what="cases", val.min=100) {
-  get_doubling_times(cvd, what, val.min=val.min) %>% 
+plot_doubling_times <- function(cvd, what="cases", val.min=100, val.max=1000) {
+  get_doubling_times(cvd, what, val.min=val.min, val.max=val.max) %>% 
     ggplot(aes(x=country, y=slope, ymin=lo, ymax=up)) +
     theme_bw() +
     geom_errorbar(width=0.3) +
@@ -123,16 +128,16 @@ plot_doubling_times <- function(cvd, what="cases", val.min=100) {
 }
 
 
-plot_country <- function(cvd, cntry="United Kingdom",
-                         what="cases", val.min=100) {
+plot_country_1 <- function(cvd, cntry="United Kingdom",
+                         what="cases", val.min=100, title="") {
   shifts <- linear_shifts(cvd, what=what, val.min=val.min)
   d <- cvd %>%
     shift_days(shifts, what = what, val.min = val.min)
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
   basic_plot(d_eu, x="days", y=what, xlab="Normalized day",
-             palette=rep("grey",10), shps=rep(1, 10)) +
-    ggtitle(cntry) +
+             palette=rep("grey",100), shps=rep(1, 100)) +
+    ggtitle(title) +
     theme(legend.position = "none") +
     geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
     geom_line(data=d_sel, colour="black")
@@ -185,8 +190,8 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, t
 }
 
 
-plot_derivative <- function(cvd, cntry="United Kingdom",
-                         what="cases", val.min=100, span=2) {
+plot_derivative_1 <- function(cvd, cntry="United Kingdom",
+                         what="cases", val.min=100, span=2, title="") {
   shifts <- linear_shifts(cvd, what=what, val.min=val.min)
   d <- cvd %>%
     filter(country == cntry) %>% 
@@ -218,7 +223,7 @@ plot_derivative <- function(cvd, cntry="United Kingdom",
       axis.text.x = element_blank(),
       panel.grid.minor = element_blank()
     ) +
-    labs(x=NULL, y=glue::glue("log10 {what}"), title=cntry) +
+    labs(x=NULL, y=glue::glue("log10 {what}"), title=title) +
     xlim(xlim)
   g2 <- ggplot(dif, aes(x=x, y=dbl)) +
     theme_bw() +
@@ -230,12 +235,24 @@ plot_derivative <- function(cvd, cntry="United Kingdom",
   
 }
 
+plot_derivative <- function(cvd, cntry="United Kingdom", span=2) {
+  g1 <- plot_derivative_1(cvd, cntry, "cases", val.min=100, span=span, title=cntry)
+  g2 <- plot_derivative_1(cvd, cntry, "deaths", val.min=10, span=span)
+  plot_grid(g1, g2, nrow=1)
+}
 
 
-plot_death_ratio <- function(cvd, text.size=8, mortality=0.034) {
+plot_country <- function(cvd, cntry="United Kingdom") {
+  g1 <- plot_country_1(cvd, cntry, "cases", val.min=100, title=cntry)
+  g2 <- plot_country_1(cvd, cntry, "deaths", val.min=10)
+  plot_grid(g1, g2, nrow=1)
+}
+
+plot_death_ratio <- function(cvd, text.size=8, mortality=0.034, min.cases=100, min.deaths=30) {
   d <- cvd %>% 
     group_by(country) %>% 
     summarise(deaths = sum(new_deaths), cases = sum(new_cases)) %>% 
+    filter(deaths >= min.deaths & cases >= min.cases) %>% 
     mutate(ratio = deaths / cases) %>% 
     arrange(ratio) %>% 
     mutate(country = as_factor(country)) %>% 
@@ -256,4 +273,15 @@ plot_death_ratio <- function(cvd, text.size=8, mortality=0.034) {
     labs(x=NULL, y="Reported deaths / reported cases") +
     geom_hline(yintercept = mortality, colour="red", linetype="dashed")
   g
+}
+
+
+annotate_save <- function(filename, g, lab, width=6, height=3) {
+  ann <- ggplot() +
+    xlim(0, 1) +
+    annotate("text", label=glue::glue("Source: {lab}"), hjust=0, x=0, y=0, size=2, colour="grey50") +
+    theme_nothing() +
+    theme(plot.margin = unit(c(-5,0,-5,-5), "mm"))
+  plt <- plot_grid(g ,ann, ncol=1, rel_heights = c(20, 1))
+  ggsave(filename, plt, device="png", width=width, height=height)
 }
