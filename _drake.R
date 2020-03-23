@@ -12,17 +12,22 @@ source("R/func.R")
 if(!dir.exists("fig")) dir.create("fig")
 
 read_data <- drake_plan(
+  population = read_population("API_SP.POP.TOTL_DS2_en_csv_v2_887275.csv"),
   url_covid = get_url(),
   covid_raw = read_covid(url_covid),
-  covid = process_covid(covid_raw),
+  covid = process_covid(covid_raw, population),
   covid_sel = covid %>% filter(country %in% countries_eu) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_eu))
 )
 
 plots <- drake_plan(
   plot_cases = basic_plot(covid_sel),
   plot_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
+  plot_cases_pop = basic_plot(covid_sel, y="cases_pop"),
+  plot_deaths_pop = basic_plot(covid_sel %>% filter(deaths>0), y="deaths_pop"),
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
+  plot_shifted_cases_pop = plot_shifted(covid_sel, what="cases_pop", val.min=0.1, val.max=10),
+  plot_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.02),
   plot_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
   plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
   plot_uk = plot_country(covid, cntry="United Kingdom"),

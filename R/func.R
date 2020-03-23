@@ -15,12 +15,31 @@ read_covid <- function(urlc) {
   readxl::read_excel(tmp)
 }
 
-process_covid <- function(cvd) {
+# Read and process data from World Bank
+# https://data.worldbank.org/indicator/SP.POP.TOTL
+read_population <- function(file) {
+  read_csv(file, skip=4, col_types = cols()) %>% 
+    select(
+      country = `Country Name`,
+      id = `Country Code`,
+      population = `2018`
+    ) %>% 
+    mutate(country = recode(country,
+      "Egypt, Arab Rep." = "Egypt",
+      "Iran, Islamic Rep." = "Iran",
+      "Russian Federation" = "Russia",
+      "Slovak Republic" = "Slovakia",
+      "Korea, Rep." = "South Korea"
+    ))
+}
+
+process_covid <- function(cvd, pop) {
   cvd %>% 
     rename(
       country = `Countries and territories`,
       new_cases = Cases,
-      new_deaths = Deaths
+      new_deaths = Deaths,
+      id = GeoId
     ) %>%
     mutate(country = str_replace_all(country, "_", " ")) %>% 
     mutate(country = recode(country,
@@ -33,14 +52,24 @@ process_covid <- function(cvd) {
     mutate(deaths = cumsum(new_deaths)) %>% 
     ungroup() %>% 
     filter(
-      tot_cases > 200 &
+      tot_cases > 100 &
       country != "Cases on an international conveyance Japan"
+    ) %>% 
+    left_join(pop, by="country") %>% 
+    mutate(
+      cases_pop = 1e5 * cases / population,
+      deaths_pop = 1e5 * deaths/ population
     )
 }
 
 basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1) {
-  brks <- rep(c(1, 2, 5), 5) * 10^sort(rep(0:4,3))
-  if(is.null(ylab)) ylab = glue("Reported {y}")
+  brks <- c(1, 2, 5) * 10^sort(rep(-3:4,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
+  if(is.null(ylab)) {
+    yl <- y
+    if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
+    ylab = glue("Reported {yl}")
+  }
   d %>% 
     ggplot(aes_string(x=x, y=y, colour="country", shape="country", group="country")) +
     theme_bw() +
@@ -53,7 +82,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
     geom_point(size=point.size) +
     scale_colour_manual(values=palette) +
     scale_shape_manual(values=shps) +
-    scale_y_log10(breaks=brks) +
+    scale_y_log10(breaks=brks, labels=labs) +
     labs(x=xlab, y=ylab)
 }
 
@@ -64,14 +93,13 @@ shift_days <- function(d, shifts, what="cases", val.min=100) {
     mutate(days = as.integer(date) - shift - ref)
 }
 
-plot_shifted <- function(cvd, what="cases", val.min=100) {
-  shifts <- linear_shifts(cvd, what=what, val.min=val.min)
+plot_shifted <- function(cvd, what="cases", val.min=100, val.max=1000) {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max)
   cvd %>% 
-    mutate(value = !!sym(what)) %>% 
-    filter(value >= val.min) %>% 
+    filter(!!sym(what) >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
-    basic_plot(x="days", y="value", ylab=glue("Reported {what}"), xlab="Normalized day")
+    basic_plot(x="days", y=what, xlab="Normalized day")
 }
 
 linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100, val.max=1000) {
@@ -129,8 +157,8 @@ plot_doubling_times <- function(cvd, what="cases", val.min=100, val.max=1000) {
 
 
 plot_country_1 <- function(cvd, cntry="United Kingdom",
-                         what="cases", val.min=100, title="") {
-  shifts <- linear_shifts(cvd, what=what, val.min=val.min)
+                         what="cases", val.min=100, val.max=1000, title="") {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max)
   d <- cvd %>%
     shift_days(shifts, what = what, val.min = val.min)
   d_eu <- d %>% filter(country %in% countries_eu)
@@ -139,8 +167,8 @@ plot_country_1 <- function(cvd, cntry="United Kingdom",
              palette=rep("grey",100), shps=rep(1, 100)) +
     ggtitle(title) +
     theme(legend.position = "none") +
-    geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2.5) +
-    geom_line(data=d_sel, colour="black")
+    geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2)
+    #geom_line(data=d_sel, colour="black")
 }
 
 plot_country_fit <- function(cvd, cntry="Italy",
@@ -243,8 +271,8 @@ plot_derivative <- function(cvd, cntry="United Kingdom", span=2) {
 
 
 plot_country <- function(cvd, cntry="United Kingdom") {
-  g1 <- plot_country_1(cvd, cntry, "cases", val.min=100, title=cntry)
-  g2 <- plot_country_1(cvd, cntry, "deaths", val.min=10)
+  g1 <- plot_country_1(cvd, cntry, "cases_pop", val.min=0.1, val.max=10, title=cntry)
+  g2 <- plot_country_1(cvd, cntry, "deaths_pop", val.min=0.02)
   plot_grid(g1, g2, nrow=1)
 }
 
