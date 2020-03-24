@@ -39,6 +39,7 @@ plots <- drake_plan(
   plot_diff_italy = plot_derivative(covid, cntry="Italy"),
   plot_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
   plot_ratio = plot_death_ratio(covid, mortality=0.034),
+  plot_cases_deaths = plot_cases_diff_deaths(covid),
   
   plot_aus = plot_country(covid, cntry="Australia")
  )
@@ -47,13 +48,16 @@ figs <- plots %>%
   select(-command, name = target) %>% 
   mutate(
     obj = rlang::syms(name),
-    filename = paste0("fig/", str_remove(name, "plot_"), ".png")
-  )
+    filename = paste0("fig/", str_remove(name, "plot_"), ".png"),
+    width = 6,
+    height = 4
+  ) %>% 
+  mutate(height = if_else(name == "plot_cases_deaths", 6, height))
 
 save_figures <- drake_plan(
   figures = target(
     #command = ggsave(filename, obj, device="png", width=6, height=3),
-    command = annotate_save(filename, obj, url_covid),
+    command = annotate_save(filename, obj, url_covid, width=width, height=height),
     transform = map(.data = !!figs)
   )
 )

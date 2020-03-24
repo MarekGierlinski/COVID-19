@@ -43,7 +43,8 @@ process_covid <- function(cvd, pop) {
     ) %>%
     mutate(country = str_replace_all(country, "_", " ")) %>% 
     mutate(country = recode(country,
-      'United States of America' = "United States"
+      'United States of America' = "United States",
+      "CANADA" = "Canada"
     )) %>%
     mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
     group_by(country) %>% 
@@ -312,4 +313,33 @@ annotate_save <- function(filename, g, lab, width=6, height=3) {
     theme(plot.margin = unit(c(-5,0,-5,-5), "mm"))
   plt <- plot_grid(g ,ann, ncol=1, rel_heights = c(20, 1))
   ggsave(filename, plt, device="png", width=width, height=height)
+}
+
+
+plot_cases_diff_deaths <- function(cvd) {
+  brks <- c(1) * 10^sort(rep(0:4,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
+  
+  d <- cvd %>%
+    group_by(country) %>%
+    summarise(cases_tot = sum(new_cases), deaths_tot = sum(new_deaths)) %>%
+    filter(deaths_tot > 0) %>% 
+    arrange(deaths_tot) %>%
+    mutate(country=as_factor(country), lab=paste0(as.character(country), "  "))
+  ggplot(d, aes(y=country)) +
+    theme_bw() +
+    geom_segment(aes(x=deaths_tot, xend=cases_tot, y=country, yend=country), colour="grey50") +
+    geom_point(aes(x = cases_tot), shape=21, fill="blue", size=1.5, colour="grey50") +
+    geom_point(aes(x = deaths_tot), shape=21, fill="red", size=1.5, colour="grey50") +
+    geom_text(aes(x=deaths_tot, y=country, label=lab), hjust=1, size=2.5) +
+    scale_x_log10(breaks=brks, labels=labs, limits=c(0.05, max(d$cases_tot)*1.05)) +
+    scale_y_discrete(expand=c(0,1)) +
+    labs(x="Reported deaths and cases", y=NULL) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      text = element_text(size=8),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank()
+    )
 }
