@@ -343,3 +343,29 @@ plot_cases_diff_deaths <- function(cvd) {
       panel.grid.major.y = element_blank()
     )
 }
+
+
+plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom", what="cases", val.min=100, shift=0) {
+  d <- cvd %>% 
+    mutate(value = !!sym(what), lval = log10(value), day = as.integer(date)) %>% 
+    filter(country %in% c(cntry1, cntry2) & value >= val.min) %>% 
+    select(country, day, lval) %>% 
+    mutate(day = as.numeric(day)) %>% 
+    mutate(day = if_else(country == cntry2, day - shift, day))
+  x <- seq(min(d$day), max(d$day), 0.1)
+  f <- d %>% 
+    group_by(country) %>% 
+    group_split() %>% 
+    map_dfr(function(w) {
+      f <- lm(lval ~ poly(day, 2), data=w)
+      tibble(
+        country = w[1, ]$country,
+        x = x,
+        y = predict(f, tibble(day = x))
+      )
+    })
+  ggplot() +
+    theme_bw() +
+    geom_point(data=d, aes(x=day, y=lval, colour=country)) +
+    geom_line(data=f, aes(x=x, y=y, colour=country))
+}

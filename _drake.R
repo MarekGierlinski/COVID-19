@@ -56,7 +56,6 @@ figs <- plots %>%
 
 save_figures <- drake_plan(
   figures = target(
-    #command = ggsave(filename, obj, device="png", width=6, height=3),
     command = annotate_save(filename, obj, url_covid, width=width, height=height),
     transform = map(.data = !!figs)
   )
