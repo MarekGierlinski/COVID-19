@@ -388,6 +388,9 @@ plot_daily <- function(cvd, cntry, what="new_deaths_pop", flt="new_deaths", val.
     scale_y_log10() +
     geom_smooth(method="loess", span=span) +
     theme_bw() +
+    theme(
+      panel.grid.minor = element_blank()
+    ) +
     labs(x="Date", y=ylab, title=cntry)
 }
 

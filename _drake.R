@@ -44,7 +44,9 @@ plots <- drake_plan(
   plot_daily_italy = plot_daily(covid, cntry="Italy"),
   plot_daily_spain = plot_daily(covid, cntry="Spain"),
   plot_daily_uk = plot_daily(covid, cntry="United Kingdom"),
-  plot_daily_us = plot_daily(covid, cntry="United States")
+  plot_daily_us = plot_daily(covid, cntry="United States"),
+  
+  plot_daily_cases_china = plot_daily(covid, "China", what="new_cases_pop", span=0.5)
 )
 
 figs <- plots %>% 
