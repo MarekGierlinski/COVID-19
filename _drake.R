@@ -41,8 +41,11 @@ plots <- drake_plan(
   plot_ratio = plot_death_ratio(covid, mortality=0.034),
   plot_cases_deaths = plot_cases_diff_deaths(covid),
   
-  plot_aus = plot_country(covid, cntry="Australia")
- )
+  plot_daily_italy = plot_daily(covid, cntry="Italy"),
+  plot_daily_spain = plot_daily(covid, cntry="Spain"),
+  plot_daily_uk = plot_daily(covid, cntry="United Kingdom"),
+  plot_daily_us = plot_daily(covid, cntry="United States")
+)
 
 figs <- plots %>% 
   select(-command, name = target) %>% 

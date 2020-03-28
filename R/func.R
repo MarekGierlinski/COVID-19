@@ -36,17 +36,17 @@ read_population <- function(file) {
 process_covid <- function(cvd, pop) {
   cvd %>% 
     rename(
-      country = `Countries and territories`,
-      new_cases = Cases,
-      new_deaths = Deaths,
-      id = GeoId
+      country = `countriesAndTerritories`,
+      new_cases = cases,
+      new_deaths = deaths,
+      id = geoId
     ) %>%
     mutate(country = str_replace_all(country, "_", " ")) %>% 
     mutate(country = recode(country,
       'United States of America' = "United States",
       "CANADA" = "Canada"
     )) %>%
-    mutate(date = as.Date(DateRep, format="%d/%m/%Y")) %>% 
+    mutate(date = as.Date(dateRep, format="%d/%m/%Y")) %>% 
     group_by(country) %>% 
     arrange(date) %>% 
     mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
@@ -59,7 +59,9 @@ process_covid <- function(cvd, pop) {
     left_join(pop, by="country") %>% 
     mutate(
       cases_pop = 1e5 * cases / population,
-      deaths_pop = 1e5 * deaths/ population
+      deaths_pop = 1e5 * deaths/ population,
+      new_cases_pop = 1e5 * new_cases / population,
+      new_deaths_pop = 1e5 * new_deaths/ population
     )
 }
 
@@ -368,4 +370,37 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
     theme_bw() +
     geom_point(data=d, aes(x=day, y=lval, colour=country)) +
     geom_line(data=f, aes(x=x, y=y, colour=country))
+}
+
+
+plot_daily <- function(cvd, cntry, what="new_deaths_pop", flt="new_deaths", val.min=1, span=1, ylab=NULL) {
+  if(is.null(ylab)) {
+    yl <- what
+    if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
+    yl <- str_remove(yl, "new_")
+    ylab = glue("Daily {yl}")
+  }
+  cvd %>%
+    filter(country==cntry) %>%
+    filter(!!sym(flt) > val.min) %>%
+  ggplot(aes_string(x="date", y=what)) +
+    geom_point() +
+    scale_y_log10() +
+    geom_smooth(method="loess", span=span) +
+    theme_bw() +
+    labs(x="Date", y=ylab, title=cntry)
+}
+
+plot_heatmap <- function(cvd, what="new_cases") {
+  brks <- c(1, 2, 5) * 10^sort(rep(0:4,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
+  lbrks <- log10(brks)
+  
+  cvd %>%
+    mutate(value = !!sym(what), lval = log10(value)) %>% 
+    filter(value > 5) %>%
+  ggplot(aes(x=date, y=country, fill=lval)) +
+    theme_bw() +
+    geom_tile() +
+    scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis")
 }
