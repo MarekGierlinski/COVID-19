@@ -27,7 +27,7 @@ plots <- drake_plan(
   plot_shifted_cases = plot_shifted(covid_sel, what="cases"),
   plot_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
   plot_shifted_cases_pop = plot_shifted(covid_sel, what="cases_pop", val.min=0.1, val.max=10),
-  plot_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.02),
+  plot_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.02, val.max=1),
   plot_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
   plot_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
   plot_uk = plot_country(covid, cntry="United Kingdom"),
@@ -40,13 +40,20 @@ plots <- drake_plan(
   plot_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
   plot_ratio = plot_death_ratio(covid, mortality=0.034),
   plot_cases_deaths = plot_cases_diff_deaths(covid),
+  plot_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
   
   plot_daily_italy = plot_daily(covid, cntry="Italy"),
   plot_daily_spain = plot_daily(covid, cntry="Spain"),
   plot_daily_uk = plot_daily(covid, cntry="United Kingdom"),
   plot_daily_us = plot_daily(covid, cntry="United States"),
   
-  plot_daily_cases_china = plot_daily(covid, "China", what="new_cases_pop", span=0.5)
+  plot_daily_cases_china = plot_daily(covid, "China", what="new_cases_pop", span=0.5),
+  
+  plot_japan = plot_grid(
+    plot_country_1(covid, cntry="Japan", "cases_pop", val.min=0.1, val.max=10, shft=13) + ggtitle("Japan"),
+    plot_country_1(covid, cntry="Japan", "deaths_pop", val.min=0.007, val.max=0.5, shft=6),
+    nrow=1
+  )
 )
 
 figs <- plots %>% 
@@ -57,7 +64,7 @@ figs <- plots %>%
     width = 6,
     height = 4
   ) %>% 
-  mutate(height = if_else(name == "plot_cases_deaths", 6, height))
+  mutate(height = if_else(str_detect(name, "plot_cases_deaths"), 8, height))
 
 save_figures <- drake_plan(
   figures = target(

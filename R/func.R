@@ -1,6 +1,6 @@
-countries_eu <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal")
+countries_eu <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 shapes <- c(15:18, 0:14)
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "black")
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 
 get_url <- function() {
   yesterday <- Sys.Date() - 1
@@ -65,7 +65,7 @@ process_covid <- function(cvd, pop) {
     )
 }
 
-basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1) {
+basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0) {
   brks <- c(1, 2, 5) * 10^sort(rep(-3:4,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
   if(is.null(ylab)) {
@@ -73,6 +73,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
     if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
     ylab = glue("Reported {yl}")
   }
+  d[[x]] <- d[[x]] - shft
   d %>% 
     ggplot(aes_string(x=x, y=y, colour="country", shape="country", group="country")) +
     theme_bw() +
@@ -102,7 +103,7 @@ plot_shifted <- function(cvd, what="cases", val.min=100, val.max=1000) {
     filter(!!sym(what) >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
-    basic_plot(x="days", y=what, xlab="Normalized day")
+    basic_plot(x="days", y=what, xlab="Relative day")
 }
 
 linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100, val.max=1000) {
@@ -160,14 +161,14 @@ plot_doubling_times <- function(cvd, what="cases", val.min=100, val.max=1000) {
 
 
 plot_country_1 <- function(cvd, cntry="United Kingdom",
-                         what="cases", val.min=100, val.max=1000, title="") {
+                         what="cases", val.min=100, val.max=1000, title="", shft=0) {
   shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max)
   d <- cvd %>%
     shift_days(shifts, what = what, val.min = val.min)
   d_eu <- d %>% filter(country %in% countries_eu)
   d_sel <- d %>% filter(country == cntry)
-  basic_plot(d_eu, x="days", y=what, xlab="Normalized day",
-             palette=rep("grey",100), shps=rep(1, 100)) +
+  basic_plot(d_eu, x="days", y=what, xlab="Relative day",
+             palette=rep("grey",100), shps=rep(1, 100), shft=shft) +
     ggtitle(title) +
     theme(legend.position = "none") +
     geom_point(data=d_sel, shape=21, fill="royalblue", colour="black", size=2)
@@ -193,7 +194,7 @@ plot_country_fit <- function(cvd, cntry="Italy",
     geom_ribbon(data = pred, aes(x=days, y=NULL, ymin=lwr, ymax=upr), fill="grey70", alpha=0.3) +
     geom_line(data = pred, aes(x=days, y=fit, group=1), colour="grey30") +
     geom_point(size=1.5)+
-    labs(x="Normalized day", y=glue::glue("log10 {what}"), title=cntry)
+    labs(x="Relative day", y=glue::glue("log10 {what}"), title=cntry)
 }
 
 plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, text.size=7, ncol=9, min.date=as.Date("2020-01-10")) {
@@ -260,7 +261,7 @@ plot_derivative_1 <- function(cvd, cntry="United Kingdom",
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
     geom_line() +
-    labs(x = "Normalized day", y = "Doubling time") +
+    labs(x = "Relative day", y = "Doubling time") +
     xlim(xlim)
   plot_grid(g1, g2, ncol=1, rel_heights = c(1,0.6), align="v")
   
@@ -275,7 +276,7 @@ plot_derivative <- function(cvd, cntry="United Kingdom", span=2) {
 
 plot_country <- function(cvd, cntry="United Kingdom") {
   g1 <- plot_country_1(cvd, cntry, "cases_pop", val.min=0.1, val.max=10, title=cntry)
-  g2 <- plot_country_1(cvd, cntry, "deaths_pop", val.min=0.02)
+  g2 <- plot_country_1(cvd, cntry, "deaths_pop", val.min=0.02, val.max=1)
   plot_grid(g1, g2, nrow=1)
 }
 
@@ -318,9 +319,19 @@ annotate_save <- function(filename, g, lab, width=6, height=3) {
 }
 
 
-plot_cases_diff_deaths <- function(cvd) {
-  brks <- c(1) * 10^sort(rep(0:4,3))
-  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
+plot_cases_diff_deaths <- function(cvd, pop=FALSE) {
+  brkmin <- 0
+  xmin <- 0.05
+  xlab <- "Reported deaths and cases"
+  if(pop) {
+    cvd <- mutate(cvd, new_cases = new_cases_pop, new_deaths = new_deaths_pop)
+    xmin <- 0.001
+    xlab <- paste(xlab, "per 100,000")
+    brkmin <- -3
+  }
+  
+  brks <- c(1) * 10^sort(rep(brkmin:6,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   
   d <- cvd %>%
     group_by(country) %>%
@@ -334,9 +345,9 @@ plot_cases_diff_deaths <- function(cvd) {
     geom_point(aes(x = cases_tot), shape=21, fill="blue", size=1.5, colour="grey50") +
     geom_point(aes(x = deaths_tot), shape=21, fill="red", size=1.5, colour="grey50") +
     geom_text(aes(x=deaths_tot, y=country, label=lab), hjust=1, size=2.5) +
-    scale_x_log10(breaks=brks, labels=labs, limits=c(0.05, max(d$cases_tot)*1.05)) +
+    scale_x_log10(breaks=brks, labels=labs, limits=c(xmin, max(d$cases_tot)*1.05)) +
     scale_y_discrete(expand=c(0,1)) +
-    labs(x="Reported deaths and cases", y=NULL) +
+    labs(x=xlab, y=NULL) +
     theme(
       axis.text.y = element_blank(),
       axis.ticks.y = element_blank(),
