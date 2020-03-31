@@ -1,4 +1,7 @@
-countries_eu <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
+countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
+countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
+
+
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 
@@ -165,7 +168,7 @@ plot_country_1 <- function(cvd, cntry="United Kingdom",
   shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max)
   d <- cvd %>%
     shift_days(shifts, what = what, val.min = val.min)
-  d_eu <- d %>% filter(country %in% countries_eu)
+  d_eu <- d %>% filter(country %in% countries_sel)
   d_sel <- d %>% filter(country == cntry)
   basic_plot(d_eu, x="days", y=what, xlab="Relative day",
              palette=rep("grey",100), shps=rep(1, 100), shft=shft) +
@@ -384,25 +387,25 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily <- function(cvd, cntry, what="new_deaths_pop", flt="new_deaths", val.min=1, span=1, ylab=NULL) {
-  if(is.null(ylab)) {
-    yl <- what
-    if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
-    yl <- str_remove(yl, "new_")
-    ylab = glue("Daily {yl}")
-  }
-  cvd %>%
-    filter(country==cntry) %>%
-    filter(!!sym(flt) > val.min) %>%
-  ggplot(aes_string(x="date", y=what)) +
-    geom_point() +
-    scale_y_log10() +
-    geom_smooth(method="loess", span=span) +
+plot_daily_deaths <- function(cvd, countries, date_min="2020-03-01", ncol=2) {
+  d <- cvd %>%
+    filter(country %in% countries) %>%
+    filter(date >= as.Date(date_min))
+  bl <- d %>%
+    group_by(country) %>%
+    summarise(maxy = max(new_deaths_pop) * 1.1, date=as.Date(date_min))
+  
+  ggplot() +
+    geom_blank(data=bl, aes(x=date, y=maxy)) +
+    geom_segment(data=d, aes(x=date, xend=date, y=0, yend=new_deaths_pop), colour="grey70") +
+    geom_point(data=d, aes(x=date, y=new_deaths_pop)) +
+    scale_y_continuous(expand=c(0,0)) +
+    facet_wrap(~country, ncol=ncol, scales ="free_y") +
     theme_bw() +
     theme(
-      panel.grid.minor = element_blank()
+      panel.grid = element_blank()
     ) +
-    labs(x="Date", y=ylab, title=cntry)
+    labs(x=NULL, y="Daily deaths per 100,000")
 }
 
 plot_heatmap <- function(cvd, what="new_cases") {
