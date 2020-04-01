@@ -69,8 +69,8 @@ process_covid <- function(cvd, pop) {
 }
 
 basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0) {
-  brks <- c(1, 2, 5) * 10^sort(rep(-3:4,3))
-  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
+  brks <- c(1, 2, 5) * 10^sort(rep(-4:6,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   if(is.null(ylab)) {
     yl <- y
     if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
@@ -106,7 +106,8 @@ plot_shifted <- function(cvd, what="cases", val.min=100, val.max=1000) {
     filter(!!sym(what) >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
-    basic_plot(x="days", y=what, xlab="Relative day")
+    basic_plot(x="days", y=what, xlab="Relative day") +
+      geom_hline(yintercept=c(val.min, val.max), colour="royalblue", linetype="dashed")
 }
 
 linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100, val.max=1000) {
