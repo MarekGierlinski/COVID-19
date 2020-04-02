@@ -329,7 +329,7 @@ plot_cases_diff_deaths <- function(cvd, pop=FALSE) {
   xlab <- "Reported deaths and cases"
   if(pop) {
     cvd <- mutate(cvd, new_cases = new_cases_pop, new_deaths = new_deaths_pop)
-    xmin <- 0.001
+    xmin <- 0.0005
     xlab <- paste(xlab, "per 100,000")
     brkmin <- -3
   }
@@ -388,25 +388,30 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily_deaths <- function(cvd, countries, date_min="2020-03-01", ncol=2) {
+plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=2) {
+  if(what=="deaths") {
+    cvd$y <- cvd$new_deaths_pop
+  } else {
+    cvd$y <- cvd$new_cases_pop
+  }
   d <- cvd %>%
     filter(country %in% countries) %>%
     filter(date >= as.Date(date_min))
   bl <- d %>%
     group_by(country) %>%
-    summarise(maxy = max(new_deaths_pop) * 1.1, date=as.Date(date_min))
+    summarise(maxy = max(y) * 1.1, date=as.Date(date_min))
   
   ggplot() +
     geom_blank(data=bl, aes(x=date, y=maxy)) +
-    geom_segment(data=d, aes(x=date, xend=date, y=0, yend=new_deaths_pop), colour="grey70") +
-    geom_point(data=d, aes(x=date, y=new_deaths_pop)) +
+    geom_segment(data=d, aes(x=date, xend=date, y=0, yend=y), colour="grey70") +
+    geom_point(data=d, aes(x=date, y=y)) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales ="free_y") +
     theme_bw() +
     theme(
       panel.grid = element_blank()
     ) +
-    labs(x=NULL, y="Daily deaths per 100,000")
+    labs(x=NULL, y=glue("Daily {what} per 100,000"))
 }
 
 plot_heatmap <- function(cvd, what="new_cases") {
