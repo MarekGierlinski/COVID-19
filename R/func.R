@@ -100,8 +100,8 @@ shift_days <- function(d, shifts, what="cases", val.min=100) {
     mutate(days = as.integer(date) - shift - ref)
 }
 
-plot_shifted <- function(cvd, what="cases", val.min=100, val.max=1000) {
-  shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max)
+plot_shifted <- function(cvd, what="cases", val.min=100, val.max=1000, base_country="Italy") {
+  shifts <- linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max, base_country = base_country)
   cvd %>% 
     filter(!!sym(what) >= val.min) %>% 
     left_join(shifts, by="country") %>% 
@@ -119,15 +119,14 @@ linear_shifts <- function(cvd, what="cases", base_country = "Italy", val.min=100
   
   finv <- lm(day ~ lval, data=filter(dat, country==base_country))
   ref_day0 <- finv$coefficients[1]
+  ref_day_vmin <- predict(finv, data.frame(lval=log2(val.min)))
   ref_slope <- finv$coefficients[2]
-  ref_10000 <- predict(finv, data.frame(lval = log2(10000)))
-  
+
   shifts <- dat %>% 
     group_by(country) %>% 
     summarise(shift = mean(day - ref_slope * lval) - ref_day0) %>% 
-    mutate(date10000 = as.Date(ref_10000 + shift, origin=as.Date("1970/01/01"))) %>% 
-    arrange(date10000) %>% 
-    mutate(ref = ref_day0)
+    arrange(shift) %>% 
+    mutate(ref = ref_day_vmin)
 }
 
 get_doubling_times <- function(cvd, what="cases", val.min=100, val.max=10000) {

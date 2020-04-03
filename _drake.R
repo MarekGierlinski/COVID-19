@@ -16,7 +16,8 @@ read_data <- drake_plan(
   url_covid = get_url(),
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw, population),
-  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel))
+  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
+  cvd_uk_kor = covid %>% filter(country %in% c("United Kingdom", "South Korea")),
 )
 
 plots <- drake_plan(
@@ -49,7 +50,10 @@ plots <- drake_plan(
     plot_country_1(covid, cntry="Japan", "cases_pop", val.min=0.1, val.max=10, shft=13) + ggtitle("Japan"),
     plot_country_1(covid, cntry="Japan", "deaths_pop", val.min=0.007, val.max=0.5, shft=6),
     nrow=1
-  )
+  ),
+  
+  fig_uk_korea_cases = plot_shifted(cvd_uk_kor, what="cases_pop", base_country="United Kingdom", val.min=1, val.max=6),
+  fig_uk_korea_deaths = plot_shifted(cvd_uk_kor, what="deaths_pop", base_country="United Kingdom", val.min=0.005, val.max=0.02)
 )
 
 figs <- plots %>% 
