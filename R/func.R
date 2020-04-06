@@ -426,3 +426,48 @@ plot_heatmap <- function(cvd, what="new_cases") {
     geom_tile() +
     scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis")
 }
+
+plot_death_excess <- function(cvd, cntry, base_country="South Korea", val.min=0.005, val.max=0.02, cntry_short=NULL) {
+  if(is.null(cntry_short)) cntry_short <- cntry
+  
+  shifts <- linear_shifts(cvd, what="deaths_pop", val.min=val.min, val.max=val.max, base_country = base_country)
+  cvd_sel <- cvd %>% 
+    filter(country %in% c(cntry, base_country)) %>% 
+    filter(deaths_pop >= val.min) %>% 
+    left_join(shifts, by="country") %>% 
+    mutate(days = as.integer(date) - shift - ref) %>% 
+    select(country, days, deaths, deaths_pop, population)
+  
+  fit <- loess(log10(deaths_pop) ~ days, data=cvd_sel %>% filter(country == base_country))
+  
+  cvd_cntry <- cvd_sel %>% filter(country == cntry)
+  cvd_pred <- cvd_cntry %>% 
+    mutate(deaths_pred = 10^predict(fit, cvd_cntry) * population / 1e5) %>% 
+    drop_na() %>% 
+    mutate(deaths_ex = as.integer(deaths - deaths_pred)) %>% 
+    filter(deaths_ex >= 0)
+    
+  
+  xlims <- c(0, max(cvd_sel$days))  
+  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per 100,000") +
+    scale_x_continuous(limits=xlims) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      legend.position = "top",
+      plot.margin = margin(0, 0, -2, 0, "pt")
+    )
+  
+  g2 <- ggplot(cvd_pred, aes(x=days, y=deaths_ex)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    geom_segment(aes(xend=days, yend=0), colour="grey80") +
+    geom_point() +
+    #scale_y_log10() +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(cvd_pred$deaths_ex)*1.05)) +
+    scale_x_continuous(limits = xlims) +
+    labs(x="Relative day", y=glue("Excess deaths in {cntry_short}"))
+  
+  plot_grid(g1, g2, align="v", ncol=1, rel_heights = c(1.5,1))
+}
