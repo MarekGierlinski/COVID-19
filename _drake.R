@@ -54,7 +54,8 @@ plots <- drake_plan(
   
   fig_uk_korea_cases = plot_shifted(cvd_uk_kor, what="cases_pop", base_country="United Kingdom", val.min=1, val.max=6),
   fig_uk_korea_deaths = plot_shifted(cvd_uk_kor, what="deaths_pop", base_country="United Kingdom", val.min=0.005, val.max=0.02),
-  fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.005, val.max=0.02)
+  fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.005, val.max=0.02),
+  fig_italy_korea_excess = plot_death_excess(covid, cntry="Italy", base_country = "South Korea", val.min=0.005, val.max=0.02)
 )
 
 figs <- plots %>% 
@@ -65,8 +66,8 @@ figs <- plots %>%
     width = 6,
     height = 4
   ) %>% 
-  mutate(height = if_else(str_detect(name, "fig_cases_deaths"), 8, height)) %>% 
-  mutate(height = if_else(str_detect(name, "fig_uk_korea_excess"), 6, height))
+  mutate(height = if_else(str_detect(name, "fig_cases_deaths"), 10, height)) %>% 
+  mutate(height = if_else(str_detect(name, "excess"), 6, height))
 
 save_figures <- drake_plan(
   figures = target(
