@@ -427,7 +427,7 @@ plot_heatmap <- function(cvd, what="new_cases") {
     scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis")
 }
 
-plot_death_excess <- function(cvd, cntry, base_country="South Korea", val.min=0.005, val.max=0.02, cntry_short=NULL) {
+plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South Korea", val.min=0.005, val.max=0.02, cntry_short=NULL) {
   if(is.null(cntry_short)) cntry_short <- cntry
   
   shifts <- linear_shifts(cvd, what="deaths_pop", val.min=val.min, val.max=val.max, base_country = base_country)
@@ -436,7 +436,7 @@ plot_death_excess <- function(cvd, cntry, base_country="South Korea", val.min=0.
     filter(deaths_pop >= val.min) %>% 
     left_join(shifts, by="country") %>% 
     mutate(days = as.integer(date) - shift - ref) %>% 
-    select(country, days, deaths, deaths_pop, population)
+    select(country, date, days, deaths, deaths_pop, population)
   
   fit <- loess(log10(deaths_pop) ~ days, data=cvd_sel %>% filter(country == base_country))
   
