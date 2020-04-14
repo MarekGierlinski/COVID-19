@@ -15,8 +15,7 @@ read_data <- drake_plan(
   url_covid = get_url(),
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw),
-  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
-  cvd_uk_kor = covid %>% filter(country %in% c("United Kingdom", "South Korea")),
+  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel))
 )
 
 plots <- drake_plan(
@@ -30,13 +29,13 @@ plots <- drake_plan(
   fig_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.2, val.max=5),
   #fig_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
   #fig_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
-  fig_uk = plot_country(covid, cntry="United Kingdom"),
-  fig_us = plot_country(covid, cntry="United States"),
+  #fig_uk = plot_country(covid, cntry="United Kingdom"),
+  #fig_us = plot_country(covid, cntry="United States"),
   fig_new_cases = plot_daily_cases(covid, what="new_cases", ncol=8),
   fig_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=8, val.min = 1),
   #fig_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
   #fig_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
-  fig_diff_italy = plot_derivative(covid, cntry="Italy"),
+  #fig_diff_italy = plot_derivative(covid, cntry="Italy"),
   fig_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
   fig_ratio = plot_death_ratio(covid, mortality=NULL),
   fig_cases_deaths = plot_cases_diff_deaths(covid),
@@ -51,8 +50,6 @@ plots <- drake_plan(
     nrow=1
   ),
   
-  fig_uk_korea_cases = plot_shifted(cvd_uk_kor, what="cases_pop", base_country="United Kingdom", val.min=10, val.max=60),
-  fig_uk_korea_deaths = plot_shifted(cvd_uk_kor, what="deaths_pop", base_country="United Kingdom", val.min=0.05, val.max=0.2),
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
   fig_italy_korea_excess = plot_death_excess(covid, cntry="Italy", base_country = "South Korea", val.min=0.05, val.max=0.2)
 )
