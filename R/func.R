@@ -1,5 +1,6 @@
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
+countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Portugal", "Switzerland", "Canada")
 
 
 shapes <- c(15:18, 0:14)
@@ -36,13 +37,14 @@ read_population <- function(file) {
     ))
 }
 
-process_covid <- function(cvd, pop) {
+process_covid <- function(cvd) {
   cvd %>% 
     rename(
       country = `countriesAndTerritories`,
       new_cases = cases,
       new_deaths = deaths,
-      id = geoId
+      id = geoId,
+      population = popData2018
     ) %>%
     mutate(country = str_replace_all(country, "_", " ")) %>% 
     mutate(country = recode(country,
@@ -59,12 +61,11 @@ process_covid <- function(cvd, pop) {
       tot_cases > 100 &
       country != "Cases on an international conveyance Japan"
     ) %>% 
-    left_join(pop, by="country") %>% 
     mutate(
-      cases_pop = 1e5 * cases / population,
-      deaths_pop = 1e5 * deaths/ population,
-      new_cases_pop = 1e5 * new_cases / population,
-      new_deaths_pop = 1e5 * new_deaths/ population
+      cases_pop = 1e6 * cases / population,
+      deaths_pop = 1e6 * deaths/ population,
+      new_cases_pop = 1e6 * new_cases / population,
+      new_deaths_pop = 1e6 * new_deaths/ population
     )
 }
 
@@ -73,7 +74,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   if(is.null(ylab)) {
     yl <- y
-    if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per 100,000")
+    if(str_detect(yl, "_pop")) yl <- paste(str_remove(yl, "_pop"), "per million")
     ylab = glue("Reported {yl}")
   }
   d[[x]] <- d[[x]] - shft
@@ -209,7 +210,7 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, t
   ggplot(aes(x=date, y=value, group=country)) +
     #geom_line(colour="grey70") +
     geom_point(size=point.size) +
-    geom_smooth(method="loess", formula="y ~ x", span=1.5, se=FALSE, colour="red", alpha=0.2, size=0.5) +
+    #geom_smooth(method="loess", formula="y ~ x", span=1.5, se=FALSE, colour="red", alpha=0.2, size=0.5) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
@@ -278,12 +279,12 @@ plot_derivative <- function(cvd, cntry="United Kingdom", span=2) {
 
 
 plot_country <- function(cvd, cntry="United Kingdom") {
-  g1 <- plot_country_1(cvd, cntry, "cases_pop", val.min=0.1, val.max=10, title=cntry)
-  g2 <- plot_country_1(cvd, cntry, "deaths_pop", val.min=0.02, val.max=1)
+  g1 <- plot_country_1(cvd, cntry, "cases_pop", val.min=1, val.max=100, title=cntry)
+  g2 <- plot_country_1(cvd, cntry, "deaths_pop", val.min=0.2, val.max=10)
   plot_grid(g1, g2, nrow=1)
 }
 
-plot_death_ratio <- function(cvd, text.size=8, mortality=0.034, min.cases=100, min.deaths=30) {
+plot_death_ratio <- function(cvd, text.size=8, mortality=NULL, min.cases=100, min.deaths=30) {
   d <- cvd %>% 
     group_by(country) %>% 
     summarise(deaths = sum(new_deaths), cases = sum(new_cases)) %>% 
@@ -305,8 +306,8 @@ plot_death_ratio <- function(cvd, text.size=8, mortality=0.034, min.cases=100, m
     geom_point() +
     coord_flip() +
     scale_y_continuous(expand=c(0,0), limits=c(0, max(d$conf.high) * 1.03)) +
-    labs(x=NULL, y="Reported deaths / reported cases") +
-    geom_hline(yintercept = mortality, colour="red", linetype="dashed")
+    labs(x=NULL, y="Reported deaths / reported cases")
+  if(!is.null(mortality)) g <- g + geom_hline(yintercept = mortality, colour="red", linetype="dashed")
   g
 }
 
@@ -329,7 +330,7 @@ plot_cases_diff_deaths <- function(cvd, pop=FALSE) {
   if(pop) {
     cvd <- mutate(cvd, new_cases = new_cases_pop, new_deaths = new_deaths_pop)
     xmin <- 0.0005
-    xlab <- paste(xlab, "per 100,000")
+    xlab <- paste(xlab, "per million")
     brkmin <- -3
   }
   
@@ -387,7 +388,7 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=2) {
+plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=3, ymax=NULL) {
   if(what=="deaths") {
     cvd$y <- cvd$new_deaths_pop
   } else {
@@ -399,18 +400,22 @@ plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", nco
   bl <- d %>%
     group_by(country) %>%
     summarise(maxy = max(y) * 1.1, date=as.Date(date_min))
+  if(!is.null(ymax)) bl$maxy <- ymax
   
   ggplot() +
     geom_blank(data=bl, aes(x=date, y=maxy)) +
     geom_segment(data=d, aes(x=date, xend=date, y=0, yend=y), colour="grey70") +
-    geom_point(data=d, aes(x=date, y=y)) +
+    geom_point(data=d, aes(x=date, y=y), size=0.8) +
+    stat_smooth(geom="line", data=d, aes(x=date, y=y), method="loess", span=0.75, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales ="free_y") +
     theme_bw() +
     theme(
-      panel.grid = element_blank()
+      panel.grid = element_blank(),
+      text = element_text(size=8),
+      strip.text.x = element_text(margin = margin(0.5,1,0.5,1, "mm")),
     ) +
-    labs(x=NULL, y=glue("Daily {what} per 100,000"))
+    labs(x=NULL, y=glue("Daily {what} per million"))
 }
 
 plot_heatmap <- function(cvd, what="new_cases") {
@@ -427,7 +432,7 @@ plot_heatmap <- function(cvd, what="new_cases") {
     scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis")
 }
 
-plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South Korea", val.min=0.005, val.max=0.02, cntry_short=NULL) {
+plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South Korea", val.min=0.05, val.max=0.2, cntry_short=NULL) {
   if(is.null(cntry_short)) cntry_short <- cntry
   
   shifts <- linear_shifts(cvd, what="deaths_pop", val.min=val.min, val.max=val.max, base_country = base_country)
@@ -442,14 +447,17 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
   
   cvd_cntry <- cvd_sel %>% filter(country == cntry)
   cvd_pred <- cvd_cntry %>% 
-    mutate(deaths_pred = 10^predict(fit, cvd_cntry) * population / 1e5) %>% 
+    mutate(deaths_pred = 10^predict(fit, cvd_cntry) * population / 1e6) %>% 
     drop_na() %>% 
-    mutate(deaths_ex = as.integer(deaths - deaths_pred)) %>% 
+    mutate(
+      deaths_ex = as.integer(deaths - deaths_pred),
+      deaths_rat = deaths / deaths_pred
+    ) %>% 
     filter(deaths_ex >= 0)
     
   
   xlims <- c(0, max(cvd_sel$days))  
-  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per 100,000") +
+  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per million") +
     scale_x_continuous(limits=xlims) +
     theme(
       axis.text.x = element_blank(),
