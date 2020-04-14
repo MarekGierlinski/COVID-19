@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .drake
+.DS_Store
 covid_cache
 covid_files
 fig
