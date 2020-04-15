@@ -388,7 +388,7 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=3, ymax=NULL) {
+plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=3, ymax=NULL, span=0.75) {
   if(what=="deaths") {
     cvd$y <- cvd$new_deaths_pop
   } else {
@@ -406,7 +406,7 @@ plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", nco
     geom_blank(data=bl, aes(x=date, y=maxy)) +
     geom_segment(data=d, aes(x=date, xend=date, y=0, yend=y), colour="grey70") +
     geom_point(data=d, aes(x=date, y=y), size=0.8) +
-    stat_smooth(geom="line", data=d, aes(x=date, y=y), method="loess", span=0.75, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
+    stat_smooth(geom="line", data=d, aes(x=date, y=y), method="loess", span=span, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales ="free_y") +
     theme_bw() +

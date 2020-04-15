@@ -41,8 +41,8 @@ plots <- drake_plan(
   fig_cases_deaths = plot_cases_diff_deaths(covid),
   fig_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
   
-  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths"),
-  fig_daily_cases = plot_daily(covid, countries_day, what="cases"),
+  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
+  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
 
   fig_japan = plot_grid(
     plot_country_1(covid, cntry="Japan", "cases_pop", val.min=1, val.max=100, shft=13) + ggtitle("Japan"),
