@@ -16,6 +16,7 @@ read_data <- drake_plan(
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw),
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
+  covid_europe = covid %>% filter(id %in% europe),
   ons = read_ons()
 )
 
@@ -41,9 +42,12 @@ plots <- drake_plan(
   fig_ratio = plot_death_ratio(covid, mortality=NULL),
   fig_cases_deaths = plot_cases_diff_deaths(covid),
   fig_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
+  fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
+  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.6, scls="fixed"),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed"),
   fig_shift_cases = plot_shifts(covid, countries_day),
   
   fig_japan = plot_grid(

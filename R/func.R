@@ -2,6 +2,7 @@ countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Sw
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
 countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "New Zealand")
 
+europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
 
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
@@ -337,7 +338,7 @@ annotate_save <- function(filename, g, lab, width=6, height=3) {
 }
 
 
-plot_cases_diff_deaths <- function(cvd, pop=FALSE) {
+plot_cases_diff_deaths <- function(cvd, pop=FALSE, x.min=NULL) {
   brkmin <- 0
   xmin <- 0.05
   xlab <- "Reported deaths and cases"
@@ -347,6 +348,7 @@ plot_cases_diff_deaths <- function(cvd, pop=FALSE) {
     xlab <- paste(xlab, "per million")
     brkmin <- -3
   }
+  if(!is.null(x.min)) xmin <- x.min
   
   brks <- c(1) * 10^sort(rep(brkmin:6,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
@@ -402,7 +404,7 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol=3, ymax=NULL, span=0.75, base_country="Italy") {
+plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol=4, ymax=NULL, span=0.75, base_country="Italy", scls="free_y") {
   
   shifts <- linear_shifts(cvd, what=glue("cases_pop"), val.min=val.min, val.max=val.max, base_country = base_country)
   
@@ -424,7 +426,7 @@ plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol
     geom_point(data=d, aes(x=day, y=y), size=0.8) +
     stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
-    facet_wrap(~country, ncol=ncol, scales ="free_y") +
+    facet_wrap(~country, ncol=ncol, scales =scls) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
