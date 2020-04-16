@@ -1,6 +1,6 @@
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
-countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Portugal", "Switzerland", "Canada")
+countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "New Zealand")
 
 
 shapes <- c(15:18, 0:14)
@@ -35,6 +35,20 @@ read_population <- function(file) {
       "Slovak Republic" = "Slovakia",
       "Korea, Rep." = "South Korea"
     ))
+}
+
+get_one_ons <- function(file, category) {
+  read_tsv(file, col_types = cols()) %>%
+    mutate(age = as_factor(age)) %>% 
+    pivot_longer(-age, names_to = "week", values_to = "deaths") %>% 
+    mutate(category = category, week=as.integer(week))
+}
+
+read_ons <- function() {
+  bind_rows(
+     get_one_ons("ons_all_deaths.txt", "all"),
+     get_one_ons("ons_covid_deaths.txt", "covid")
+  )
 }
 
 process_covid <- function(cvd) {
@@ -219,7 +233,7 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, t
       text = element_text(size = text.size),
       panel.spacing=unit(0, "cm")
     ) +
-    scale_y_log10(limits=c(val.min,10^4)) +
+    scale_y_log10(limits=c(val.min,40000)) +
     scale_x_date(guide = guide_axis(check.overlap = TRUE), breaks=as.Date(c("2020-02-01", "2020-03-01")), labels=c("1 Feb", "1 Mar")) +
     facet_wrap(~ country, scales="fixed", ncol=ncol) +
     labs(x = NULL, y = glue::glue("New reported daily {swhat}"))
@@ -388,25 +402,27 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
 }
 
 
-plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", ncol=3, ymax=NULL, span=0.75) {
-  if(what=="deaths") {
-    cvd$y <- cvd$new_deaths_pop
-  } else {
-    cvd$y <- cvd$new_cases_pop
-  }
+plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol=3, ymax=NULL, span=0.75, base_country="Italy") {
+  
+  shifts <- linear_shifts(cvd, what=glue("cases_pop"), val.min=val.min, val.max=val.max, base_country = base_country)
+  
   d <- cvd %>%
+    mutate(y = !!sym(glue("new_{what}_pop"))) %>% 
     filter(country %in% countries) %>%
-    filter(date >= as.Date(date_min))
+    left_join(shifts, by="country") %>% 
+    mutate(day = as.integer(date) - shift - ref) %>% 
+    select(country, day, y) %>% 
+    filter(day >= 0)
   bl <- d %>%
     group_by(country) %>%
-    summarise(maxy = max(y) * 1.1, date=as.Date(date_min))
+    summarise(maxy = max(y) * 1.1, day=0)
   if(!is.null(ymax)) bl$maxy <- ymax
   
   ggplot() +
-    geom_blank(data=bl, aes(x=date, y=maxy)) +
-    geom_segment(data=d, aes(x=date, xend=date, y=0, yend=y), colour="grey70") +
-    geom_point(data=d, aes(x=date, y=y), size=0.8) +
-    stat_smooth(geom="line", data=d, aes(x=date, y=y), method="loess", span=span, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
+    geom_blank(data=bl, aes(x=day, y=maxy)) +
+    geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey70") +
+    geom_point(data=d, aes(x=day, y=y), size=0.8) +
+    stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales ="free_y") +
     theme_bw() +
@@ -415,7 +431,21 @@ plot_daily <- function(cvd, countries, what="deaths", date_min="2020-03-01", nco
       text = element_text(size=8),
       strip.text.x = element_text(margin = margin(0.5,1,0.5,1, "mm")),
     ) +
-    labs(x=NULL, y=glue("Daily {what} per million"))
+    labs(x="Relative day", y=glue("Daily {what} per million"))
+}
+
+plot_shifts <- function(cvd, countries, what="cases_pop", val.min=1, val.max=20, base_country="Italy") {
+  linear_shifts(cvd, what=what, val.min=val.min, val.max=val.max, base_country = base_country) %>% 
+    filter(country %in% countries) %>%
+    arrange(shift) %>% 
+    mutate(country = as_factor(country)) %>% 
+  ggplot(aes(x=shift, y=country)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank()) +
+    geom_segment(aes(xend=0, yend=country), colour="grey60") +
+    geom_point() +
+    labs(x="Delay (days)", y=NULL)
+  
 }
 
 plot_heatmap <- function(cvd, what="new_cases") {
@@ -478,4 +508,19 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
     labs(x="Relative day", y=glue("Excess deaths in {cntry_short}"))
   
   plot_grid(g1, g2, align="v", ncol=1, rel_heights = c(1.5,1))
+}
+
+
+plot_ons_deaths <- function(ons, wk) {
+  d <- ons %>% 
+    filter(week == wk)
+  d %>% group_by(category) %>% summarise(deaths = sum(deaths)) %>% print()
+  ggplot(d, aes(x=age, y=deaths, fill=category)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    theme(axis.text.x = element_text(angle=45, hjust=1)) +
+    geom_col(position="identity") +
+    labs(x="Age group", y="Deaths", title=glue("Week {wk}")) +
+    scale_fill_manual(values=cbPalette[2:3]) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$deaths)*1.05))
 }

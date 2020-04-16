@@ -15,7 +15,8 @@ read_data <- drake_plan(
   url_covid = get_url(),
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw),
-  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel))
+  covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
+  ons = read_ons()
 )
 
 plots <- drake_plan(
@@ -43,7 +44,8 @@ plots <- drake_plan(
   
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
-
+  fig_shift_cases = plot_shifts(covid, countries_day),
+  
   fig_japan = plot_grid(
     plot_country_1(covid, cntry="Japan", "cases_pop", val.min=1, val.max=100, shft=13) + ggtitle("Japan"),
     plot_country_1(covid, cntry="Japan", "deaths_pop", val.min=0.07, val.max=5, shft=6),
@@ -74,10 +76,16 @@ save_figures <- drake_plan(
   )
 )
 
+ons_figures <- drake_plan(
+  fig_ons_deaths = plot_ons_deaths(ons, max(ons$week)),
+  ggsave("fig/ons_deaths.png", fig_ons_deaths, device="png", width=6, height=3)
+)
+
 plan <- bind_rows(
   read_data,
   plots,
-  save_figures
+  save_figures,
+  ons_figures
 )
 
 cfg <- drake_config(plan)
