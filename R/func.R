@@ -84,7 +84,7 @@ process_covid <- function(cvd) {
     )
 }
 
-basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0) {
+basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0, logy=TRUE) {
   brks <- c(1, 2, 5) * 10^sort(rep(-4:6,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   if(is.null(ylab)) {
@@ -93,7 +93,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
     ylab = glue("Reported {yl}")
   }
   d[[x]] <- d[[x]] - shft
-  d %>% 
+  g <- d %>% 
     ggplot(aes_string(x=x, y=y, colour="country", shape="country", group="country")) +
     theme_bw() +
     theme(
@@ -105,8 +105,13 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
     geom_point(size=point.size) +
     scale_colour_manual(values=palette) +
     scale_shape_manual(values=shps) +
-    scale_y_log10(breaks=brks, labels=labs) +
     labs(x=xlab, y=ylab)
+  if(logy) {
+    g <- g + scale_y_log10(breaks=brks, labels=labs)
+  } else {
+    g <- g + scale_y_continuous(expand=c(0,0), limits=c(0, max(d[[y]])*1.03))
+  }
+  g
 }
 
 shift_days <- function(d, shifts, what="cases", val.min=100) {
@@ -417,14 +422,14 @@ plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol
     filter(day >= 0)
   bl <- d %>%
     group_by(country) %>%
-    summarise(maxy = max(y) * 1.1, day=0)
+    summarise(maxy = max(y) * 1.05, day=0)
   if(!is.null(ymax)) bl$maxy <- ymax
   
   ggplot() +
     geom_blank(data=bl, aes(x=day, y=maxy)) +
-    geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey70") +
+    geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey90") +
     geom_point(data=d, aes(x=day, y=y), size=0.8) +
-    stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.6, colour=cbPalette[3]) +
+    stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales =scls) +
     theme_bw() +
@@ -489,14 +494,14 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
     
   
   xlims <- c(0, max(cvd_sel$days))  
-  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per million") +
+  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per million", logy=FALSE) +
     scale_x_continuous(limits=xlims) +
     theme(
       axis.text.x = element_blank(),
       axis.title.x = element_blank(),
       axis.ticks.x = element_blank(),
       legend.position = "top",
-      plot.margin = margin(0, 0, -2, 0, "pt")
+      plot.margin = margin(0, 0, 1, 0, "pt")
     )
   
   g2 <- ggplot(cvd_pred, aes(x=days, y=deaths_ex)) +
