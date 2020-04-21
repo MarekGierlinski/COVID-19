@@ -408,18 +408,24 @@ plot_two_countries <- function(cvd, cntry1 = "Italy", cntry2 = "United Kingdom",
     geom_line(data=f, aes(x=x, y=y, colour=country))
 }
 
-
-plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol=4, ymax=NULL, span=0.75, base_country="Italy", scls="free_y") {
-  
+make_day_shifts <- function(cvd, cntrs, what, val.min, val.max, base_country) {
   shifts <- linear_shifts(cvd, what=glue("cases_pop"), val.min=val.min, val.max=val.max, base_country = base_country)
   
   d <- cvd %>%
     mutate(y = !!sym(glue("new_{what}_pop"))) %>% 
-    filter(country %in% countries) %>%
+    filter(country %in% cntrs) %>%
     left_join(shifts, by="country") %>% 
     mutate(day = as.integer(date) - shift - ref) %>% 
     select(country, day, y) %>% 
     filter(day >= 0)
+  
+}
+
+plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20,
+                       ncol=4, ymax=NULL, span=0.75, base_country="Italy",
+                       scls="free_y") {
+  
+  d <- make_day_shifts(cvd, countries, what, val.min, val.max, base_country)
   bl <- d %>%
     group_by(country) %>%
     summarise(maxy = max(y) * 1.05, day=0)
@@ -439,6 +445,36 @@ plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20, ncol
       strip.text.x = element_text(margin = margin(0.5,1,0.5,1, "mm")),
     ) +
     labs(x="Relative day", y=glue("Daily {what} per million"))
+}
+
+plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
+                            span=0.75, base_country="Italy", step=0.5) {
+  d <- make_day_shifts(cvd, countries, what, val.min, val.max, base_country)
+  s <- d %>% group_split(country) %>% 
+    map_dfr(function(w) {
+      fit <- loess(y ~ day, data=w, span=span)
+      x <- seq(min(w$day), max(w$day), step)
+      tibble(
+        country = w$country[1],
+        day = x,
+        y = predict(fit, data.frame(day=x))
+      )
+    }) %>% 
+    mutate(y = if_else(day < 3, 0, y)) %>% 
+    mutate(country = factor(country, levels=countries))
+  p <- s %>%
+    group_by(country) %>%
+    summarise(x=max(day), y=last(y))
+  
+  ggplot(s, aes(x=day, y=y, colour=country)) +
+    theme_bw() +
+    theme(panel.grid = element_blank(), legend.position = "none") +
+    geom_line()  +
+    scale_color_manual(values=cbPalette) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y)*1.05)) +
+    labs(x="Relative day", y=glue("Daily {what} per million")) +
+    geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
+    geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2.5, nudge_x=0, min.segment.length = 2, hjust=1)
 }
 
 plot_shifts <- function(cvd, countries, what="cases_pop", val.min=1, val.max=20, base_country="Italy") {

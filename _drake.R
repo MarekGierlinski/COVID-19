@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
   library(broom)
   library(drake)
   library(cowplot)
+  library(ggrepel)
 })
 
 source("R/func.R")
@@ -49,6 +50,9 @@ plots <- drake_plan(
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
   fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed"),
   fig_shift_cases = plot_shifts(covid, countries_day),
+  
+  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.6),
+  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.6),
   
   fig_japan = plot_grid(
     plot_country_1(covid, cntry="Japan", "cases_pop", val.min=1, val.max=100, shft=13) + ggtitle("Japan"),
