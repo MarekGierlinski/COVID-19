@@ -1,6 +1,6 @@
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
-countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "New Zealand")
+countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "Sweden")
 
 europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
 
@@ -566,4 +566,19 @@ plot_ons_deaths <- function(ons, wk) {
     labs(x="Age group", y="Deaths", title=glue("Week {wk}")) +
     scale_fill_manual(values=cbPalette[2:3]) +
     scale_y_continuous(expand=c(0,0), limits=c(0, max(d$deaths)*1.05))
+}
+
+plot_deaths_population <- function(cvd) {
+  cvd %>%
+    filter(id %in% europe) %>%
+    group_by(country) %>%
+    summarise(deaths = sum(new_deaths), pop = first(population)/1e6) %>%
+  ggplot(aes(x=pop, y=deaths)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    geom_text_repel(aes(x=pop, y=deaths, label=country), size=2) +
+    labs(x="Population (million)", y="Total deaths")
 }

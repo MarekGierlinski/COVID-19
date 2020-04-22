@@ -61,7 +61,9 @@ plots <- drake_plan(
   ),
   
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
-  fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5)
+  fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
+  
+  fig_deaths_population = plot_deaths_population(covid)
 )
 
 figs <- plots %>% 
