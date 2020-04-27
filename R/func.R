@@ -8,8 +8,8 @@ shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 
 get_url <- function() {
-  yesterday <- Sys.Date() - 1
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{yesterday}.xlsx")
+  today <- Sys.Date()
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{today}.xlsx")
   stopifnot(RCurl::url.exists(urlc))
   urlc
 }
@@ -38,6 +38,13 @@ read_population <- function(file) {
     ))
 }
 
+# http://data.un.org/Data.aspx?q=GDP+per+capita&d=SNAAMA&f=grID%3a101%3bcurrID%3aUSD%3bpcFlag%3a1
+read_gdp <- function(file) {
+  read_csv(file, col_types = cols()) %>% 
+    set_names(c("country", "year", "item", "gdp")) %>% 
+    select(country, gdp)
+}
+
 get_one_ons <- function(file, category) {
   read_tsv(file, col_types = cols()) %>%
     mutate(age = as_factor(age)) %>% 
@@ -52,7 +59,7 @@ read_ons <- function() {
   )
 }
 
-process_covid <- function(cvd) {
+process_covid <- function(cvd, gdp) {
   cvd %>% 
     rename(
       country = `countriesAndTerritories`,
@@ -81,7 +88,8 @@ process_covid <- function(cvd) {
       deaths_pop = 1e6 * deaths/ population,
       new_cases_pop = 1e6 * new_cases / population,
       new_deaths_pop = 1e6 * new_deaths/ population
-    )
+    ) %>% 
+    left_join(gdp, by="country")
 }
 
 basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0, logy=TRUE) {
@@ -568,17 +576,40 @@ plot_ons_deaths <- function(ons, wk) {
     scale_y_continuous(expand=c(0,0), limits=c(0, max(d$deaths)*1.05))
 }
 
-plot_deaths_population <- function(cvd) {
-  cvd %>%
-    filter(id %in% europe) %>%
+plot_deaths_gdppop <- function(cvd, what="pop") {
+  brks <- c(1) * 10^sort(rep(-4:6,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
+  xlab <- ifelse(what == "pop", "Population (million)", "GDP per capita (USD)")
+  d <- cvd %>%
     group_by(country) %>%
-    summarise(deaths = sum(new_deaths), pop = first(population)/1e6) %>%
-  ggplot(aes(x=pop, y=deaths)) +
+    summarise(deaths = sum(new_deaths), pop = first(population)/1e6, rat = deaths / pop, gdp = first(gdp)) %>%
+    filter(deaths > 10)
+  ggplot(d, aes_string(x=what, y="rat", label="country")) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_smooth(method="lm", colour="lightskyblue1", alpha=0.1) +
+    scale_x_log10(breaks=brks, labels=labs) +
+    scale_y_log10(breaks=brks, labels=labs) +
+    geom_text_repel(size=1.5, segment.color = "grey70", segment.alpha = 0.4) +
+    geom_point(size=0.8) +
+    labs(x=xlab, y="Deaths per million")
+  
+}
+
+plot_deaths_population_anim <- function(cvd) {
+  brks <- c(1) * 10^sort(rep(-4:6,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
+  d <- cvd %>%
+    filter(deaths > 0) %>% 
+    mutate(pop = population / 1e6)
+  ggplot(d, aes(x=pop, y=deaths, label=country)) +
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
     geom_point() +
-    scale_x_log10() +
-    scale_y_log10() +
-    geom_text_repel(aes(x=pop, y=deaths, label=country), size=2) +
-    labs(x="Population (million)", y="Total deaths")
+    scale_x_log10(breaks=brks, labels=labs) +
+    scale_y_log10(breaks=brks, labels=labs) +
+    geom_text(size=2.4, colour="grey80", hjust=-0.1) +
+    #geom_text_repel(aes(x=pop, y=deaths, label=country), size=2) +
+    labs(x="Population (million)", y="Deaths", title="{frame_time}") +
+    transition_time(date)
 }

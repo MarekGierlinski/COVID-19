@@ -6,6 +6,7 @@ suppressPackageStartupMessages({
   library(drake)
   library(cowplot)
   library(ggrepel)
+  library(gganimate)
 })
 
 source("R/func.R")
@@ -15,10 +16,11 @@ if(!dir.exists("fig")) dir.create("fig")
 read_data <- drake_plan(
   url_covid = get_url(),
   covid_raw = read_covid(url_covid),
-  covid = process_covid(covid_raw),
+  covid = process_covid(covid_raw, gdp),
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
   covid_europe = covid %>% filter(id %in% europe),
-  ons = read_ons()
+  ons = read_ons(),
+  gdp = read_gdp("UNdata_Export_20200427_142511000.csv")
 )
 
 plots <- drake_plan(
@@ -63,7 +65,8 @@ plots <- drake_plan(
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
   fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
   
-  fig_deaths_population = plot_deaths_population(covid)
+  fig_deaths_population = plot_deaths_gdppop(covid, what="pop"),
+  fig_deahts_gdp = plot_deaths_gdppop(covid, what="gdp")
 )
 
 figs <- plots %>% 
@@ -82,7 +85,7 @@ figs <- plots %>%
 save_figures <- drake_plan(
   figures = target(
     command = annotate_save(filename, obj, url_covid, width=width, height=height),
-    transform = map(.data = !!figs)
+    transform = map(.data = !!figs, .id=eval(obj))
   )
 )
 
@@ -91,11 +94,17 @@ ons_figures <- drake_plan(
   ggsave("fig/ons_deaths.png", fig_ons_deaths, device="png", width=6, height=3)
 )
 
+animations = drake_plan(
+  anim_deaths_pop = plot_deaths_population_anim(covid),
+  save_deaths_pop = anim_save("anim_deaths_pop.gif", animation=anim_deaths_pop, path="fig", fps=8)
+)
+
 plan <- bind_rows(
   read_data,
   plots,
   save_figures,
-  ons_figures
+  ons_figures,
+  animations
 )
 
 cfg <- drake_config(plan)
