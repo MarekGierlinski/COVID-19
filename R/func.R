@@ -499,18 +499,24 @@ plot_shifts <- function(cvd, countries, what="cases_pop", val.min=1, val.max=20,
   
 }
 
-plot_heatmap <- function(cvd, what="new_cases") {
-  brks <- c(1, 2, 5) * 10^sort(rep(0:4,3))
+plot_heatmap <- function(cvd, what="new_cases", min.val=5) {
+  brks <- c(1) * 10^sort(rep(-4:5,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$")
   lbrks <- log10(brks)
   
+  shifts <- linear_shifts(cvd, what="cases_pop", val.min=1, val.max=20, base_country = "Italy")
+  
   cvd %>%
+    left_join(shifts, by="country") %>% 
+    arrange(shift) %>% 
+    mutate(country = as_factor(country)) %>% 
     mutate(value = !!sym(what), lval = log10(value)) %>% 
-    filter(value > 5) %>%
+    filter(value > min.val) %>%
   ggplot(aes(x=date, y=country, fill=lval)) +
     theme_bw() +
     geom_tile() +
-    scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis")
+    scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis") +
+    labs(x="Date", y=NULL, fill=what)
 }
 
 plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South Korea", val.min=0.05, val.max=0.2, cntry_short=NULL) {
@@ -584,16 +590,18 @@ plot_deaths_gdppop <- function(cvd, what="pop") {
     group_by(country) %>%
     summarise(deaths = sum(new_deaths), pop = first(population)/1e6, rat = deaths / pop, gdp = first(gdp)) %>%
     filter(deaths > 10)
-  ggplot(d, aes_string(x=what, y="rat", label="country")) +
-    theme_bw() +
+  g <- ggplot(d, aes_string(x=what, y="rat", label="country"))
+  if(what == "gdp") g <-g + geom_smooth(method="lm", colour="lightskyblue1", alpha=0.1)
+  g <- g + theme_bw() +
     theme(panel.grid = element_blank()) +
-    geom_smooth(method="lm", colour="lightskyblue1", alpha=0.1) +
     scale_x_log10(breaks=brks, labels=labs) +
     scale_y_log10(breaks=brks, labels=labs) +
     geom_text_repel(size=1.5, segment.color = "grey70", segment.alpha = 0.4) +
     geom_point(size=0.8) +
+    scale_colour_viridis_c(option="cividis") +
     labs(x=xlab, y="Deaths per million")
   
+  g
 }
 
 plot_deaths_population_anim <- function(cvd) {
