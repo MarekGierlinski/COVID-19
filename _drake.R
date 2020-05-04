@@ -24,12 +24,12 @@ read_data <- drake_plan(
 )
 
 plots <- drake_plan(
-  fig_cases = basic_plot(covid_sel),
-  fig_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
-  fig_cases_pop = basic_plot(covid_sel, y="cases_pop"),
-  fig_deaths_pop = basic_plot(covid_sel %>% filter(deaths>0), y="deaths_pop"),
-  fig_shifted_cases = plot_shifted(covid_sel, what="cases"),
-  fig_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
+  #fig_cases = basic_plot(covid_sel),
+  #fig_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
+  #fig_cases_pop = basic_plot(covid_sel, y="cases_pop"),
+  #fig_deaths_pop = basic_plot(covid_sel %>% filter(deaths>0), y="deaths_pop"),
+  #fig_shifted_cases = plot_shifted(covid_sel, what="cases"),
+  #fig_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
   fig_shifted_cases_pop = plot_shifted(covid_sel, what="cases_pop", val.min=1, val.max=20),
   fig_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.2, val.max=5),
   #fig_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
@@ -41,32 +41,30 @@ plots <- drake_plan(
   #fig_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
   #fig_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
   #fig_diff_italy = plot_derivative(covid, cntry="Italy"),
-  fig_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
+  #fig_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
   fig_ratio = plot_death_ratio(covid, mortality=NULL),
   fig_cases_deaths = plot_cases_diff_deaths(covid),
   fig_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
-  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.6, scls="fixed"),
+  #fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.6, scls="fixed"),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
-  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed"),
+  #fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed"),
   fig_shift_cases = plot_shifts(covid, countries_day),
-  
+
+  fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.8, cut.day=0),
+  fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.8, cut.day=0),
+
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.6),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.6),
   
-  fig_japan = plot_grid(
-    plot_country_1(covid, cntry="Japan", "cases_pop", val.min=1, val.max=100, shft=13) + ggtitle("Japan"),
-    plot_country_1(covid, cntry="Japan", "deaths_pop", val.min=0.07, val.max=5, shft=6),
-    nrow=1
-  ),
-  
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
-  fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
+  #fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
   
   fig_deaths_population = plot_deaths_gdppop(covid, what="pop"),
-  fig_deahts_gdp = plot_deaths_gdppop(covid, what="gdp")
+  fig_deahts_gdp = plot_deaths_gdppop(covid, what="gdp"),
+  fig_deaths_vs_cases = plot_cases_deaths(covid, min.deaths=1000)
 )
 
 figs <- plots %>% 
@@ -95,16 +93,16 @@ ons_figures <- drake_plan(
 )
 
 animations = drake_plan(
-  anim_deaths_pop = plot_deaths_population_anim(covid),
-  save_deaths_pop = anim_save("anim_deaths_pop.gif", animation=anim_deaths_pop, path="fig", fps=8)
+  anim_cases_deaths = plot_cases_deaths_anim(covid),
+  save_cases_deaths = anim_save("anim_cases_deaths.gif", animation=anim_cases_deaths, path="fig")
 )
 
 plan <- bind_rows(
   read_data,
   plots,
   save_figures,
-  ons_figures,
-  animations
+  ons_figures
+  #animations
 )
 
 cfg <- drake_config(plan)

@@ -1,6 +1,7 @@
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
 countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "Sweden")
+countries_2 <- c("Brazil", "Chile", "Colombia", "Mexico", "Peru", "Russia", "India", "Indonesia")
 
 europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
 
@@ -429,21 +430,25 @@ make_day_shifts <- function(cvd, cntrs, what, val.min, val.max, base_country) {
   
 }
 
-plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20,
+plot_daily <- function(cvd, cntrs, what="cases", val.min=1, val.max=20,
                        ncol=4, ymax=NULL, span=0.75, base_country="Italy",
-                       scls="free_y") {
+                       scls="free_y", n.iter=3, step=0.5, cut.day=3) {
   
-  d <- make_day_shifts(cvd, countries, what, val.min, val.max, base_country)
+  d <- make_day_shifts(cvd, cntrs, what, val.min, val.max, base_country) %>% 
+    filter(y >=0)
   bl <- d %>%
     group_by(country) %>%
     summarise(maxy = max(y) * 1.05, day=0)
   if(!is.null(ymax)) bl$maxy <- ymax
   
+  sm <- make_country_fits(d, cntrs, n.iter, span, step, cut.day)
+  
   ggplot() +
     geom_blank(data=bl, aes(x=day, y=maxy)) +
-    geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey90") +
-    geom_point(data=d, aes(x=day, y=y), size=0.8) +
-    stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3]) +
+    geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey90", size=0.3) +
+    geom_point(data=d, aes(x=day, y=y), size=0.2) +
+    geom_line(data=sm, aes(x=day, y=y, group=country), size=0.9, alpha=0.8, colour=cbPalette[3]) +
+    #stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3]) +
     scale_y_continuous(expand=c(0,0)) +
     facet_wrap(~country, ncol=ncol, scales =scls) +
     theme_bw() +
@@ -455,12 +460,20 @@ plot_daily <- function(cvd, countries, what="cases", val.min=1, val.max=20,
     labs(x="Relative day", y=glue("Daily {what} per million"))
 }
 
-plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
-                            span=0.75, base_country="Italy", step=0.5) {
-  d <- make_day_shifts(cvd, countries, what, val.min, val.max, base_country)
-  s <- d %>% group_split(country) %>% 
+fit_loess_outliers <- function(w, n.iter=3, span=0.75) {
+  for(i in 1:n.iter) {
+    fit <- loess(y ~ day, data=w, span=span)
+    w$diff <-  abs(w$y - predict(fit, w))
+    imx <- which.max(w$diff)
+    w <- w[-imx, ]
+  }
+  return(fit)
+}
+
+make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
+  d %>% group_split(country) %>% 
     map_dfr(function(w) {
-      fit <- loess(y ~ day, data=w, span=span)
+      fit <- fit_loess_outliers(w, n.iter, span)
       x <- seq(min(w$day), max(w$day), step)
       tibble(
         country = w$country[1],
@@ -468,8 +481,17 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
         y = predict(fit, data.frame(day=x))
       )
     }) %>% 
-    mutate(y = if_else(day < 3, 0, y)) %>% 
-    mutate(country = factor(country, levels=countries))
+    mutate(
+      y = if_else(day < cut.day, 0, y),
+      y = if_else(y < 0, 0, y),
+      country = factor(country, levels=cntrs)
+    )
+}
+
+plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
+                            span=0.75, base_country="Italy", step=0.5, n.iter=3) {
+  d <- make_day_shifts(cvd, countries, what, val.min, val.max, base_country)
+  s <- make_country_fits(d, countries, n.iter, span, step)
   p <- s %>%
     group_by(country) %>%
     summarise(x=max(day), y=last(y))
@@ -604,20 +626,41 @@ plot_deaths_gdppop <- function(cvd, what="pop") {
   g
 }
 
-plot_deaths_population_anim <- function(cvd) {
-  brks <- c(1) * 10^sort(rep(-4:6,3))
+
+g_cases_deaths <- function(d, repel=FALSE, min.deaths=0) {
+  brks <- c(1) * 10^sort(rep(-4:9,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
-  d <- cvd %>%
-    filter(deaths > 0) %>% 
-    mutate(pop = population / 1e6)
-  ggplot(d, aes(x=pop, y=deaths, label=country)) +
+  d <- d %>% 
+    filter(deaths > 0)
+  g <- ggplot(d, aes(x=cases, y=deaths, colour=population)) +
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
-    geom_point() +
-    scale_x_log10(breaks=brks, labels=labs) +
+    #geom_abline(slope=1, intercept=log10(c(0.01, 0.05, 0.1, 0.2)), colour="red", alpha=0.1) +
+    scale_x_log10(breaks=brks, labels=labs, limits=c(50,4e6)) +
     scale_y_log10(breaks=brks, labels=labs) +
-    geom_text(size=2.4, colour="grey80", hjust=-0.1) +
-    #geom_text_repel(aes(x=pop, y=deaths, label=country), size=2) +
-    labs(x="Population (million)", y="Deaths", title="{frame_time}") +
-    transition_time(date)
+    labs(x="Reported cases", y="Reported deaths", colour="Population") +
+    scale_colour_viridis_c(labels=scales::trans_format('log10', scales::math_format(10^.x)), breaks=brks, trans="log10")
+  if(repel) {
+    dd <- d %>% filter(deaths >= min.deaths)
+    g <- g + geom_text_repel(data=dd, aes(label=country), size=2, segment.color="grey90", colour="grey40")
+  } else {
+    g <- g + geom_text(aes(label=paste0("  ", country)), size=2.4, colour="grey80", hjust=0)
+  }
+  g + geom_point(size=0.8)
+
+}
+
+plot_cases_deaths <- function(cvd, min.deaths=1000) {
+  cvd %>%
+    filter(date == max(date)) %>% 
+    g_cases_deaths(repel=TRUE, min.deaths) +
+    theme(panel.grid = element_blank())
+}
+
+plot_cases_deaths_anim <- function(cvd) {
+  g <- g_cases_deaths(cvd) + 
+    ggtitle("{frame_time}") +
+    transition_time(date) +
+    ease_aes('cubic-in-out')
+  animate(g, height = 1200, width = 1200, res = 250, fps=8)
 }
