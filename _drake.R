@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(cowplot)
   library(ggrepel)
   library(gganimate)
+  library(ggbeeswarm)
 })
 
 source("R/func.R")
@@ -64,7 +65,12 @@ plots <- drake_plan(
   
   fig_deaths_population = plot_deaths_gdppop(covid, what="pop"),
   fig_deahts_gdp = plot_deaths_gdppop(covid, what="gdp"),
-  fig_deaths_vs_cases = plot_cases_deaths(covid, min.deaths=1000)
+  fig_deaths_vs_cases = plot_cases_deaths(covid, min.deaths=1000),
+  
+  fig_week_days_deaths = plot_week_days(covid, countries_day, what="deaths"),
+  fig_week_days_cases = plot_week_days(covid, countries_day, what="cases"),
+  
+  fig_week_days_deaths_tot = plot_week_days_total(covid)
 )
 
 figs <- plots %>% 

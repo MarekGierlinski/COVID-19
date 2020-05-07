@@ -7,6 +7,7 @@ europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LT-LU-MT-
 
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
+wd <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 get_url <- function() {
   today <- Sys.Date()
@@ -74,11 +75,17 @@ process_covid <- function(cvd, gdp) {
       'United States of America' = "United States",
       "CANADA" = "Canada"
     )) %>%
-    mutate(date = as.Date(dateRep, format="%d/%m/%Y")) %>% 
+    mutate(
+      date = as.Date(dateRep, format="%d/%m/%Y"),
+      day_of_week = weekdays(date) %>% factor(levels=wd)
+    ) %>% 
     group_by(country) %>% 
     arrange(date) %>% 
-    mutate(tot_cases = sum(new_cases), cases = cumsum(new_cases)) %>% 
-    mutate(deaths = cumsum(new_deaths)) %>% 
+    mutate(
+      tot_cases = sum(new_cases),
+      cases = cumsum(new_cases),
+      deaths = cumsum(new_deaths)
+    ) %>% 
     ungroup() %>% 
     filter(
       tot_cases > 100 &
@@ -663,4 +670,52 @@ plot_cases_deaths_anim <- function(cvd) {
     transition_time(date) +
     ease_aes('cubic-in-out')
   animate(g, height = 1200, width = 1200, res = 250, fps=8)
+}
+
+plot_week_days <- function(cvd, cntrs, what="deaths") {
+  w <- glue("new_{what}")
+  d <- cvd %>% 
+    filter(country %in% cntrs) %>% 
+    mutate(value = !!sym(w)) %>% 
+    group_by(country, day_of_week) %>% 
+    summarise(y = sum(value)) %>% 
+    group_by(country) %>% 
+    mutate(prop = y / sum(y))
+  chi <- d %>% 
+    ungroup() %>% 
+    group_split(country) %>% 
+    map_dfr(function(w) {
+      chisq.test(w$y) %>%
+        tidy() %>%
+        mutate(country = first(w$country))
+    }) 
+  
+  ggplot(d, aes(x=day_of_week, y=prop)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_col(fill="grey70", colour="grey30", width=0.8, size=0.3) +
+    facet_wrap(~ country) +
+    scale_x_discrete(labels=c("M", "T", "W", "T", "F", "S", "S")) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$prop)*1.05)) +
+    labs(x=NULL, y=glue("Proportion of reported {what}")) +
+    geom_hline(yintercept = 1/7, colour="red", linetype="dashed", alpha=0.5)
+}
+
+
+plot_week_days_total <- function(cvd) {
+  d <- cvd %>%
+    group_by(day_of_week, country) %>%
+    summarise(n = sum(new_deaths)) %>%
+    ungroup() %>%
+    filter(n > 0) %>% 
+    group_by(country) %>%
+    mutate(p = n / sum(n), tot=sum(n)) %>%
+    filter(tot > 100) %>% 
+    ungroup()
+  ggplot(data=d, aes(x=day_of_week, y=p)) + 
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_boxplot(outlier.shape = NA, fill=cbPalette[3], alpha=0.3) +
+    geom_beeswarm(cex=1, size=1, colour="grey50") +
+    labs(x=NULL, y="Proportion of deaths")
 }
