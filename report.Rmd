@@ -4,6 +4,7 @@ author: "Marek Gierlinski"
 date: '`r format(as.POSIXlt(Sys.time(), tz = "UTC"), "%d %B %Y, %H:%M:%S UTC")`'
 output:
   html_document:
+    css: nice_notebook.css
     toc: true
     toc_float: true
 ---
@@ -27,20 +28,115 @@ This document presents COVID-19 data released daily by [ECDC](https://www.ecdc.e
 
 ## Time alignment
 
-The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shift to the entire data set. Here this isssue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
+The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shift to the entire data set. Here this issue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
 
 For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!). Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. The range of the response variable used is shown in cumulative plots.
 
 ## Normalisation
 
-Most of the plots show data normalised to population (counts per million). The dashed blue lines show the rage of the response variable chosen to align countries in time.
+Most of the plots show data normalised to population (counts per million). 
 
 # Cumulative data
 
-A small selection of countries, specifically chosen to compare witht he UK.
+A small selection of countries, specifically chosen to compare with the UK. The dashed blue lines show the rage of the response variable chosen to align countries in time.
 
 ```{r cumulative, fig.width=6, fig.height=4}
 readd(fig_shifted_cases_pop)
 readd(fig_shifted_deaths_pop)
+```
+
+# Daily data
+
+## Free y-scale
+
+Daily cases (top) and deaths (bottom) from a larger selection of countries. Green curves show a loess fit. The relative day is found using a time-alignment procedure described above.
+
+```{r daily, fig.width=8, fig.height=5}
+readd(fig_daily_cases)
+readd(fig_daily_deaths)
+```
+
+## Fixed y-scale
+
+Using a fixed y-scale can help comparing different countries.
+
+```{r daily_fixed, fig.width=8, fig.height=5}
+readd(fig_daily_cases_fixed)
+readd(fig_daily_deaths_fixed)
+```
+
+
+## Smoothed data
+
+These plots show smooth daily data from loess fits (green lines in above plots) plotted together.
+
+
+```{r daily_fits, fig.width=6, fig.height=4}
+readd(fig_daily_fits_cases)
+readd(fig_daily_fits_deaths)
+```
+
+
+## Countries not doing very well
+
+A different selection of countries, where cases/deaths are still growing.
+
+
+```{r daily_bad, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
+readd(fig_daily_cases_2)
+readd(fig_daily_deaths_2)
+```
+
+
+# Global overview
+
+## Deaths and cases
+
+Reported deaths (red) and cases (blue) for all countries, order by deaths. The left panel shows raw counts, the right panel data normalised to population
+
+```{r deaths_and_cases, fig.width=10, fig.height=15}
+readd(fig_cases_deaths_both)
+```
+
+
+## Deaths vs cases
+
+Reported deaths versus cases for all countries. Countries with at least 1000 total deaths are annotated.
+
+```{r deaths_vs_cases, fig.width=7, fig.height=5}
+readd(fig_deaths_vs_cases)
+```
+
+## Deaths vs GDP
+
+```{r deaths_gdp, fig.width=7, fig.height=5, warning=FALSE}
+readd(fig_deaths_gdp)
+```
+
+# UK vs South Korea
+
+South Korea has a remarkable small number of deaths. It is a country with size and GDP comparable to the UK. The plot shows the comparison between deaths in the two countries (top panel, normalised to population). The bottom panel shows the excess deaths in the UK with respect to South Korea (corrected for population).
+
+```{r uk_korea, fig.width=6, fig.height=6}
+readd(fig_uk_korea_excess)
+```
+
+
+# European maps
+
+Maps showing cases and deaths across Europe.
+
+## Raw counts
+
+```{r eu_map_raw, fig.width=6, fig.height=6}
+readd(fig_map_eur_cases)
+readd(fig_map_eur_deaths)
+```
+
+## Normalised to population
+
+```{r eu_map_pop, fig.width=6, fig.height=6}
+readd(fig_map_eur_cases_pop)
+readd(fig_map_eur_deaths_pop)
 ```
 

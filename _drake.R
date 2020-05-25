@@ -49,12 +49,13 @@ plots <- drake_plan(
   fig_ratio = plot_death_ratio(covid, mortality=NULL),
   fig_cases_deaths = plot_cases_diff_deaths(covid),
   fig_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
+  fig_cases_deaths_both = plot_grid(fig_cases_deaths, fig_cases_deaths_pop, nrow=1),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
   fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.6, scls="fixed", ymax=30),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
-  #fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed"),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed", ymax=150),
   fig_shift_cases = plot_shifts(covid, countries_day),
 
   fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.8, cut.day=0),
@@ -67,7 +68,7 @@ plots <- drake_plan(
   fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
   
   fig_deaths_population = plot_deaths_gdppop(covid, what="pop"),
-  fig_deahts_gdp = plot_deaths_gdppop(covid, what="gdp"),
+  fig_deaths_gdp = plot_deaths_gdppop(covid, what="gdp"),
   fig_deaths_vs_cases = plot_cases_deaths(covid, min.deaths=1000),
   
   fig_week_days_deaths = plot_week_days(covid, countries_day, what="deaths"),
