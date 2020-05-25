@@ -11,3 +11,7 @@ drake::r_make()
 ```
 
 in the main project directory. The required packages are listed in `R/packages.R` file.
+
+# Report
+
+The report created by this code is available [here](http://www.compbio.dundee.ac.uk/user/mgierlinski/covid-19/report.html)
