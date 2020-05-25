@@ -4,7 +4,7 @@ author: "Marek Gierlinski"
 date: '`r format(as.POSIXlt(Sys.time(), tz = "UTC"), "Updated %d %B %Y, %H:%M:%S UTC")`'
 output:
   html_document:
-    css: nice_notebook.css
+    css: css/nice_notebook.css
     toc: true
     toc_float: true
 ---

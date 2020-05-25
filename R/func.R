@@ -1,13 +1,9 @@
-countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
-countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
-countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "Sweden")
-countries_2 <- c("Argentina", "Brazil", "Chile", "Colombia", "Mexico", "Egypt", "Iran", "Russia", "Pakistan", "India", "Bangladesh", "Indonesia")
-
-europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LV-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
-
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 wd <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+if(!dir.exists("fig")) dir.create("fig")
+
 
 get_url <- function() {
   today <- Sys.Date()
