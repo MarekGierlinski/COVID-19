@@ -1,7 +1,7 @@
 ---
 title: "COVID-19 updates"
 author: "Marek Gierlinski"
-date: '`r format(as.POSIXlt(Sys.time(), tz = "UTC"), "%d %B %Y, %H:%M:%S UTC")`'
+date: '`r format(as.POSIXlt(Sys.time(), tz = "UTC"), "Updated %d %B %Y, %H:%M:%S UTC")`'
 output:
   html_document:
     css: nice_notebook.css
@@ -28,9 +28,9 @@ This document presents COVID-19 data released daily by [ECDC](https://www.ecdc.e
 
 ## Time alignment
 
-The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shift to the entire data set. Here this issue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
+The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shifts. Here this issue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
 
-For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!). Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. The range of the response variable used is shown in cumulative plots.
+For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!) to identify a region where cumulative curves are similar. Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. The range of the response variable used is shown in cumulative plots.
 
 ## Normalisation
 
@@ -77,7 +77,7 @@ readd(fig_daily_fits_deaths)
 ```
 
 
-## Countries not doing very well
+## Countries with growing cases/deaths
 
 A different selection of countries, where cases/deaths are still growing.
 
