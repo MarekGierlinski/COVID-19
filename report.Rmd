@@ -26,13 +26,13 @@ This document presents COVID-19 data released daily by [ECDC](https://www.ecdc.e
 
 # How data were processed
 
-The R code used to prepare this document and all figures is available at [GitHub](https://github.com/MarekGierlinski/COVID-19).
+ECDC data were processed with an R code, which is available in [GitHub](https://github.com/MarekGierlinski/COVID-19).
 
 ## Time alignment
 
 The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shifts. Here this issue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
 
-For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!) to identify a region where cumulative curves are similar. Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. The range of the response variable used is shown in cumulative plots.
+For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!) to identify a region where cumulative curves are similar. Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. Day 0 is where Italy's model crosses the bottom value of the range. The range of the response variable used is shown in cumulative plots.
 
 ## Normalisation
 
@@ -111,7 +111,7 @@ readd(fig_deaths_vs_cases)
 
 ## Deaths vs GDP
 
-```{r deaths_gdp, fig.width=7, fig.height=5, warning=FALSE}
+```{r deaths_gdp, fig.width=7, fig.height=5, warning=FALSE, message=FALSE}
 readd(fig_deaths_gdp)
 ```
 
