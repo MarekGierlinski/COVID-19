@@ -26,6 +26,8 @@ This document presents COVID-19 data released daily by [ECDC](https://www.ecdc.e
 
 # How data were processed
 
+The R code used to prepare this document and all figures is available at [GitHub](https://github.com/MarekGierlinski/COVID-19).
+
 ## Time alignment
 
 The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shifts. Here this issue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
