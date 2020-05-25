@@ -130,14 +130,14 @@ Maps showing cases and deaths across Europe.
 
 ## Raw counts
 
-```{r eu_map_raw, fig.width=6, fig.height=6}
+```{r eu_map_raw, fig.width=6, fig.height=4}
 readd(fig_map_eur_cases)
 readd(fig_map_eur_deaths)
 ```
 
 ## Normalised to population
 
-```{r eu_map_pop, fig.width=6, fig.height=6}
+```{r eu_map_pop, fig.width=6, fig.height=4}
 readd(fig_map_eur_cases_pop)
 readd(fig_map_eur_deaths_pop)
 ```
