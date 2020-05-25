@@ -1,9 +1,9 @@
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "Switzerland", "Netherlands",  "Norway", "Belgium",  "Sweden",  "Austria", "Portugal", "Turkey")
 countries_sel <- c("Italy", "Spain",  "France", "Germany", "United Kingdom", "United States")
 countries_day <- c(countries_sel, "Belgium", "Netherlands", "Ireland", "Switzerland", "Canada", "Sweden")
-countries_2 <- c("Brazil", "Chile", "Colombia", "Mexico", "Peru", "Russia", "India", "Indonesia")
+countries_2 <- c("Argentina", "Brazil", "Chile", "Colombia", "Mexico", "Egypt", "Iran", "Poland", "Russia", "Pakistan", "India", "Indonesia")
 
-europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
+europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LV-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
 
 shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
@@ -438,7 +438,7 @@ make_day_shifts <- function(cvd, cntrs, what, val.min, val.max, base_country) {
 }
 
 plot_daily <- function(cvd, cntrs, what="cases", val.min=1, val.max=20,
-                       ncol=4, ymax=NULL, span=0.75, base_country="Italy",
+                       ncol=4, ymax=NA, span=0.75, base_country="Italy",
                        scls="free_y", n.iter=3, step=0.5, cut.day=3) {
   
   d <- make_day_shifts(cvd, cntrs, what, val.min, val.max, base_country) %>% 
@@ -446,7 +446,7 @@ plot_daily <- function(cvd, cntrs, what="cases", val.min=1, val.max=20,
   bl <- d %>%
     group_by(country) %>%
     summarise(maxy = max(y) * 1.05, day=0)
-  if(!is.null(ymax)) bl$maxy <- ymax
+  if(!is.na(ymax)) bl$maxy <- ymax
   
   sm <- make_country_fits(d, cntrs, n.iter, span, step, cut.day)
   
@@ -456,7 +456,8 @@ plot_daily <- function(cvd, cntrs, what="cases", val.min=1, val.max=20,
     geom_point(data=d, aes(x=day, y=y), size=0.2) +
     geom_line(data=sm, aes(x=day, y=y, group=country), size=0.9, alpha=0.8, colour=cbPalette[3]) +
     #stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3]) +
-    scale_y_continuous(expand=c(0,0)) +
+    #scale_y_continuous(expand=c(0,0), limits=c(0, ymax)) +
+    coord_cartesian(expand=FALSE, ylim=c(0, ymax)) +
     facet_wrap(~country, ncol=ncol, scales =scls) +
     theme_bw() +
     theme(
@@ -511,7 +512,7 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
     scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y)*1.05)) +
     labs(x="Relative day", y=glue("Daily {what} per million")) +
     geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
-    geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2.5, nudge_x=0, min.segment.length = 2, hjust=1)
+    geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2, nudge_x=0, min.segment.length = 0.5, hjust=0.5, segment.alpha = 0.3)
 }
 
 plot_shifts <- function(cvd, countries, what="cases_pop", val.min=1, val.max=20, base_country="Italy") {
@@ -573,7 +574,7 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
     
   
   xlims <- c(0, max(cvd_sel$days))  
-  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per million", logy=FALSE) +
+  g1 <- basic_plot(cvd_sel, x="days", y="deaths_pop",xlab=NULL,  ylab="Cumulative deaths per million", logy=TRUE) +
     scale_x_continuous(limits=xlims) +
     theme(
       axis.text.x = element_blank(),
@@ -588,7 +589,6 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
     theme(panel.grid.minor = element_blank()) +
     geom_segment(aes(xend=days, yend=0), colour="grey80") +
     geom_point() +
-    #scale_y_log10() +
     scale_y_continuous(expand=c(0,0), limits=c(0, max(cvd_pred$deaths_ex)*1.05)) +
     scale_x_continuous(limits = xlims) +
     labs(x="Relative day", y=glue("Excess deaths in {cntry_short}"))
@@ -659,7 +659,8 @@ g_cases_deaths <- function(d, repel=FALSE, min.deaths=0) {
 
 plot_cases_deaths <- function(cvd, min.deaths=1000) {
   cvd %>%
-    filter(date == max(date)) %>% 
+    group_by(country) %>% 
+    summarise(deaths = max(deaths), cases = max(cases), population = first(population)) %>% 
     g_cases_deaths(repel=TRUE, min.deaths) +
     theme(panel.grid = element_blank())
 }
@@ -718,4 +719,80 @@ plot_week_days_total <- function(cvd) {
     geom_boxplot(outlier.shape = NA, fill=cbPalette[3], alpha=0.3) +
     geom_beeswarm(cex=1, size=1, colour="grey50") +
     labs(x=NULL, y="Proportion of deaths")
+}
+
+
+plot_map_europe <- function(cvd, what="deaths", val.max=NULL, brks=NULL) {
+  val <- glue("new_{what}")
+  brks <- sort(rep(brks,3))
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
+  covid_tot <- cvd %>%
+    group_by(countryterritoryCode) %>%
+    summarise(tot = sum(!!sym(val)))
+  eur_map <- ne_countries(scale=50, continent="Europe", returnclass = "sf") %>% 
+    left_join(covid_tot, by=c("iso_a3" = "countryterritoryCode")) %>%
+    filter(!(admin %in% c("San Marino", "Andorra"))) 
+    #filter(!is.na(tot))
+  w <- str_remove(what, "_pop")
+  leg <- ifelse(str_detect(what, "pop"), glue("{w} per million"), w)
+  
+  g <- ggplot(eur_map) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    ) +
+    geom_sf(aes(fill=tot), size=0.2) +
+    labs(fill=leg) +
+    xlim(-23, 45) +
+    ylim(36, 70)
+  if(is.null(val.max)) {
+    g <- g + scale_fill_viridis_c(option="cividis", breaks=brks, labels=labs)
+  } else {
+    g <- g + scale_fill_viridis_c(option="cividis", breaks=brks, labels=labs, limits=c(0, val.max))
+  }
+  g
+}
+
+
+
+read_scotland <- function(file) {
+  pop <- 5.463300
+  d <- read_csv(file, skip=3, col_types="cc", col_names=c("Date", "Count")) %>% 
+    mutate(count = str_remove(Count, ",") %>% as.numeric()) %>% 
+    filter(str_detect(Date, "/2020")) %>% 
+    mutate(date = as.Date(Date, "%m/%d/%Y")) 
+  tibble(
+    country = "Scotland",
+    date = d[2:nrow(d), ] %>% pull(date),
+    deaths = diff(d$count),
+    deaths_pop = deaths / pop,
+    cumdeaths_pop = cumsum(deaths_pop)
+  )
+}
+
+read_england <- function(file) {
+  pop <- 56.286961
+  d <- read_tsv(file) %>% select(-(1:3))
+  tibble(
+    country = "England",
+    date = as.Date(names(d), "%d-%b-%y"),
+    deaths = d[1, ] %>% as.numeric(),
+    deaths_pop = deaths / pop,
+    cumdeaths_pop = cumsum(deaths_pop)
+  )
+}
+
+plot_england_scotland <- function() {
+  d <- bind_rows(
+    read_scotland("Scotland 2020-05-20.csv"),
+    read_england("England 2020-05-20.txt")
+  ) 
+
+  ggplot(d, aes(x=date, y=cumdeaths_pop, colour=country)) +
+    theme_bw() +
+    geom_line() +
+    geom_point() +scale_colour_manual(values=cbPalette) 
+    #scale_y_log10()
 }
