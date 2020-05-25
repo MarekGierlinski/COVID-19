@@ -56,8 +56,8 @@ get_one_ons <- function(file, category) {
 
 read_ons <- function() {
   bind_rows(
-     get_one_ons("ons_all_deaths.txt", "all"),
-     get_one_ons("ons_covid_deaths.txt", "covid")
+     get_one_ons("data/ons_all_deaths.txt", "all"),
+     get_one_ons("data/ons_covid_deaths.txt", "covid")
   )
 }
 

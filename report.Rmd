@@ -1,0 +1,46 @@
+---
+title: "COVID-19 updates"
+author: "Marek Gierlinski"
+date: '`r format(as.POSIXlt(Sys.time(), tz = "UTC"), "%d %B %Y, %H:%M:%S UTC")`'
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+library(drake)
+knitr::opts_chunk$set(
+  echo = FALSE
+)
+```
+
+
+# Data
+
+This document presents COVID-19 data released daily by [ECDC](https://www.ecdc.europa.eu/en). Specifically, the source for this report is
+
+[`r readd(url_covid)`](`r readd(url_covid)`).
+
+
+# How data were processed
+
+## Time alignment
+
+The onset of the epidemic in each country is different. Many publications align data in time based on a day where number of cases/deaths crossed a certain, arbitrary level, for example 1 per million. This relies on one data point and, since data are noisy, can introduce large random shift to the entire data set. Here this isssue is curtailed by using a range of data for time alignment. This is still an arbitrary selection, but results in a reduced random error.
+
+For this procedure a range in the response variable (case or deaths, raw counts or normalised to population) is selected based upon visual inspection of data (I know!). Then, a time shift is introduced to each country in order to bring them together. Specifically, Italy is used as a base line, and other data are shifted to minimise the root-mean-square between a given country and a best-fitting Italy loess model. The range of the response variable used is shown in cumulative plots.
+
+## Normalisation
+
+Most of the plots show data normalised to population (counts per million). The dashed blue lines show the rage of the response variable chosen to align countries in time.
+
+# Cumulative data
+
+A small selection of countries, specifically chosen to compare witht he UK.
+
+```{r cumulative, fig.width=6, fig.height=4}
+readd(fig_shifted_cases_pop)
+readd(fig_shifted_deaths_pop)
+```
+

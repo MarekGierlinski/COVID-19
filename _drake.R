@@ -24,7 +24,7 @@ read_data <- drake_plan(
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
   covid_europe = covid %>% filter(id %in% europe),
   ons = read_ons(),
-  gdp = read_gdp("UNdata_Export_20200427_142511000.csv")
+  gdp = read_gdp("data/UNdata_Export_20200427_142511000.csv")
 )
 
 plots <- drake_plan(
@@ -106,16 +106,25 @@ ons_figures <- drake_plan(
   ggsave("fig/ons_deaths.png", fig_ons_deaths, device="png", width=6, height=3)
 )
 
-animations = drake_plan(
+animations <-  drake_plan(
   anim_cases_deaths = plot_cases_deaths_anim(covid),
   save_cases_deaths = anim_save("anim_cases_deaths.gif", animation=anim_cases_deaths, path="fig")
+)
+
+knit_report <- drake_plan(
+  report = rmarkdown::render(
+    input = knitr_in("report.Rmd"),
+    output_file = file_out("report.html"),
+    quiet = TRUE
+  ) 
 )
 
 plan <- bind_rows(
   read_data,
   plots,
   save_figures,
-  ons_figures
+  ons_figures,
+  knit_report
   #animations
 )
 
