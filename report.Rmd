@@ -42,7 +42,7 @@ Most of the plots show data normalised to population (counts per million).
 
 A small selection of countries, specifically chosen to compare with the UK. The dashed blue lines show the rage of the response variable chosen to align countries in time.
 
-```{r cumulative, fig.width=6, fig.height=4}
+```{r cumulative, fig.width=7, fig.height=4}
 readd(fig_shifted_cases_pop)
 readd(fig_shifted_deaths_pop)
 ```
