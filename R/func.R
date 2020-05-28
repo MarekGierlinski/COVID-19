@@ -792,3 +792,22 @@ plot_england_scotland <- function() {
     geom_point() +scale_colour_manual(values=cbPalette) 
     #scale_y_log10()
 }
+
+
+plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
+  s <- what %>% str_remove("new_") %>% str_remove("_pop")
+  d <- cvd %>%
+    filter(date > max(date) - n & population >= min.pop) %>% 
+    group_by(country) %>% 
+    summarise(M = mean(!!sym(what), na.rm=TRUE)) %>% 
+    arrange(-M) %>% 
+    mutate(country = as_factor(country) %>% fct_rev()) %>% 
+    head(top.n)
+  ggplot(d, aes(x=country, y=M)) +
+    theme_bw() +
+    geom_col(fill="grey70", colour="black") +
+    coord_flip() +
+    labs(y = glue("Reported {s} per million per day (mean over last {n} days)"), x=NULL) +
+    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M) * 1.05))
+  
+}

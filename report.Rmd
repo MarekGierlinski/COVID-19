@@ -90,6 +90,15 @@ readd(fig_daily_deaths_2)
 ```
 
 
+# Recent cases and deaths
+
+Reported daily cases and deaths (per million), averaged over last seven days. Only countries with at least 1 million population are included. The plot shows the top ten countries.
+
+```{r recent_daily_deaths, fig.width=6, fig.height=3}
+readd(fig_recent_daily_cases)
+readd(fig_recent_daily_deaths)
+```
+
 # Global overview
 
 ## Deaths and cases
