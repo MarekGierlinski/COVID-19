@@ -798,16 +798,21 @@ plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, to
   s <- what %>% str_remove("new_") %>% str_remove("_pop")
   d <- cvd %>%
     filter(date > max(date) - n & population >= min.pop) %>% 
+    mutate(val = !!sym(what)) %>% 
     group_by(country) %>% 
-    summarise(M = mean(!!sym(what), na.rm=TRUE)) %>% 
+    summarise(M = mean(val, na.rm=TRUE), S = sd(val, na.rm=TRUE), n = n()) %>% 
     arrange(-M) %>% 
     mutate(country = as_factor(country) %>% fct_rev()) %>% 
+    mutate(SE = S / sqrt(n), tc = qt(0.975, df = n - 1), M_lo = M - SE*tc, M_up = M + SE*tc) %>% 
+    mutate(M_lo = if_else(M_lo < 0, 0, M_lo)) %>% 
     head(top.n)
-  ggplot(d, aes(x=country, y=M)) +
+  ggplot(d, aes(x=country)) +
     theme_bw() +
-    geom_col(fill="grey70", colour="black") +
+    theme(panel.grid = element_blank()) +
+    geom_segment(aes(xend=country, y = M_lo, yend = M_up), colour="grey60") +
+    geom_point(aes(y = M)) +
     coord_flip() +
-    labs(y = glue("Reported {s} per million per day (mean over last {n} days)"), x=NULL) +
-    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M) * 1.05))
+    labs(y = glue("Reported {s} per million per day (mean and 95% CI over last {n} days)"), x=NULL) +
+    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M_up) * 1.05))
   
 }

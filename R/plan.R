@@ -45,8 +45,8 @@ plots <- drake_plan(
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.6),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.6),
   
-  fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=10),
-  fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=10),
+  fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=20),
+  fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=20),
   
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
   fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
