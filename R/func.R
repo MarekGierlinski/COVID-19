@@ -57,6 +57,41 @@ read_ons <- function() {
   )
 }
 
+
+# 2018 population, source: Wikipedia
+uk_pop <- tribble(
+  ~nation, ~population,
+  "England", 55977178,
+  "Scotland", 5438100,
+  "Wales", 3138631,
+  "Northern Ireland", 1881641,
+  "UK", 66435550	
+)
+
+get_url_testing <- function() {
+  today <- Sys.Date() - 1
+  urlc <- glue("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/888827/{today}_COVID-19_UK_testing_time_series.csv")
+  stopifnot(RCurl::url.exists(urlc))
+  urlc
+}
+
+read_testing <- function(urlc) {
+  read_csv(urlc, col_types = cols(), na = c("NA", "Unavailable")) %>% 
+    mutate(date = as.Date(`Date of activity`, format="%d/%m/%Y")) %>% 
+    rename(
+      nation = Nation,
+      pillar = Pillar,
+      tests = "Daily number of tests",
+      people_tested = "Daily number of people tested",
+      positives = "Daily number of positive cases",
+      tests_processed = "Daily In-person (tests processed)",
+      tests_sent = "Daily Delivery (tests sent out)"
+    ) %>% 
+    select(-starts_with("Cumul")) %>% 
+    left_join(uk_pop, by="nation")
+}
+
+
 process_covid <- function(cvd, gdp) {
   cvd %>% 
     rename(
@@ -479,15 +514,19 @@ make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3
     map_dfr(function(w) {
       fit <- fit_loess_outliers(w, n.iter, span)
       x <- seq(min(w$day), max(w$day), step)
+      f <- predict(fit, data.frame(day=x), se=TRUE)
       tibble(
         country = w$country[1],
         day = x,
-        y = predict(fit, data.frame(day=x))
+        y = f$fit,
+        y_lo = f$fit - qt(0.975, f$df) * f$se,
+        y_up = f$fit + qt(0.975, f$df) * f$se
       )
     }) %>% 
     mutate(
       y = if_else(day < cut.day, 0, y),
       y = if_else(y < 0, 0, y),
+      y_lo = if_else(y_lo < 0, 0, y_lo),
       country = factor(country, levels=cntrs)
     )
 }
@@ -503,9 +542,11 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
   ggplot(s, aes(x=day, y=y, colour=country)) +
     theme_bw() +
     theme(panel.grid = element_blank(), legend.position = "none") +
+    #geom_ribbon(aes(ymin=y_lo, ymax=y_up, y=NULL, fill=country), alpha=0.3, colour=NA) +
     geom_line()  +
     scale_color_manual(values=cbPalette) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y)*1.05)) +
+    scale_fill_manual(values=cbPalette) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y_up)*1.05)) +
     labs(x="Relative day", y=glue("Daily {what} per million")) +
     geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
     geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2, nudge_x=0, min.segment.length = 0.5, hjust=0.5, segment.alpha = 0.3)
@@ -814,5 +855,20 @@ plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, to
     coord_flip() +
     labs(y = glue("Reported {s} per million per day (mean and 95% CI over last {n} days)"), x=NULL) +
     scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M_up) * 1.05))
-  
+}
+
+plot_testing <- function(d, what="positives") {
+  d <- d %>% 
+    filter(!(nation %in% c("UK", "Wales"))) %>% 
+    mutate(val = !!sym(what), val_pop = 1e6 * val / population)
+  mx <- max(d$val_pop, na.rm=TRUE) * 1.05
+  ggplot(d, aes(x=date, y=val_pop)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_segment(aes(xend=date, yend=0), colour="grey80") +
+    geom_point() +
+    geom_smooth(method="loess", span=0.5, size=0.9, alpha=0.8, colour=cbPalette[3], se=FALSE) +
+    facet_wrap(~nation, ncol=3) +
+    scale_y_continuous(expand=c(0,0), limits=c(0,mx)) +
+    labs(x=NULL, y=NULL, title=glue("Daily {what} per million") %>% str_replace("_", " "))
 }

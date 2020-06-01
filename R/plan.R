@@ -33,17 +33,17 @@ plots <- drake_plan(
   fig_cases_deaths_both = plot_grid(fig_cases_deaths, fig_cases_deaths_pop, nrow=1),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
-  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.6),
-  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.6, scls="fixed", ymax=30),
-  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.6),
-  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.6, scls="fixed", ymax=150),
+  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.5),
+  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.5, scls="fixed", ymax=30),
+  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.5),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.5, scls="fixed", ymax=150),
   fig_shift_cases = plot_shifts(covid, countries_day),
   
-  fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.8, cut.day=0),
-  fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.8, cut.day=0),
+  fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.5, cut.day=0),
+  fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.5, cut.day=0),
   
-  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.6),
-  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.6),
+  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.5),
+  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.5),
   
   fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=20),
   fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=20),
@@ -64,6 +64,7 @@ plots <- drake_plan(
   fig_map_eur_cases = plot_map_europe(covid, what="cases", brks=0:5*100000),
   fig_map_eur_deaths_pop = plot_map_europe(covid, what="deaths_pop",brks=seq(0,10,2)*100),
   fig_map_eur_cases_pop = plot_map_europe(covid, what="cases_pop", brks=0:10*1000)
+
 )
 
 figs <- plots %>% 
@@ -96,6 +97,18 @@ animations <-  drake_plan(
   save_cases_deaths = anim_save("anim_cases_deaths.gif", animation=anim_cases_deaths, path="fig")
 )
 
+
+testing <- drake_plan(
+  url_testing = get_url_testing(),
+  testing_data = read_testing(url_testing),
+  
+  fig_testing_people = plot_testing(testing_data, "people_tested"),
+  fig_testing_positives = plot_testing(testing_data, "positives"),
+  
+  save_fig_testing_people = ggsave("fig/testing_people.png", fig_testing_people, device="png", width=7, height=3),
+  save_fig_testing_positives = ggsave("fig/testing_positives.png", fig_testing_positives, device="png", width=7, height=3)
+)
+
 knit_report <- drake_plan(
   report = rmarkdown::render(
     input = knitr_in("report.Rmd"),
@@ -109,6 +122,7 @@ plan <- bind_rows(
   plots,
   save_figures,
   ons_figures,
+  testing,
   knit_report
   #animations
 )

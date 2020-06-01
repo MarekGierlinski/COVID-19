@@ -151,3 +151,18 @@ readd(fig_map_eur_cases_pop)
 readd(fig_map_eur_deaths_pop)
 ```
 
+
+# UK government testing data
+
+The source for this data is
+
+[`r readd(url_testing)`](`r readd(url_testing)`)
+
+These data contain time series of COVID-19 testing in all four nations of the UK. Here, we show results for Pillar 1 (swab testing in PHE labs and NHS hospitals for those with a clinical need, and health and care workers). Data from Wales contain Pillar 1 and 2 (swab testing for the wider population aged 5 and over), so we don't show it as it is inconsistent with other nations.
+
+The UK testing data includes number of people tested under Pillar 1 and number of positives. These figures are consistent between three nations and can be compared (though they don't include positives outside labs/hospitals).
+
+```{r fig_testing, fig.width=7, fig.height=3, message=FALSE, warning=FALSE}
+readd(fig_testing_people)
+readd(fig_testing_positives)
+```

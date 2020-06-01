@@ -4,7 +4,8 @@ countries_sel <- c(
   "France",
   "Germany",
   "United Kingdom",
-  "United States"
+  "United States",
+  "Sweden"
 )
 countries_day <- c(
   countries_sel,
@@ -12,8 +13,8 @@ countries_day <- c(
   "Netherlands",
   "Ireland",
   "Switzerland",
-  "Canada",
-  "Sweden"
+  "Canada"
+  #"Sweden"
 )
 countries_2 <- c(
   "Argentina",
