@@ -5,7 +5,8 @@ read_data <- drake_plan(
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
   covid_europe = covid %>% filter(id %in% europe),
   ons = read_ons(),
-  gdp = read_gdp("data/UNdata_Export_20200427_142511000.csv")
+  gdp = read_gdp("data/UNdata_Export_20200427_142511000.csv"),
+  print_date = print(paste("Last date in file:", covid %>% pull(date) %>% max()))
 )
 
 plots <- drake_plan(

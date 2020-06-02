@@ -7,8 +7,8 @@ if(!dir.exists("fig")) dir.create("fig")
 
 get_url <- function() {
   today <- Sys.Date()
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{today}.xlsx")
-  stopifnot(RCurl::url.exists(urlc))
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx")
+  stopifnot(url.exists(urlc))
   urlc
 }
 
@@ -68,10 +68,13 @@ uk_pop <- tribble(
   "UK", 66435550	
 )
 
+
+# scrape web page to find URL
 get_url_testing <- function() {
-  today <- Sys.Date() - 1
-  urlc <- glue("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/888827/{today}_COVID-19_UK_testing_time_series.csv")
-  stopifnot(RCurl::url.exists(urlc))
+  urlc <- read_html("https://www.gov.uk/guidance/coronavirus-covid-19-information-for-the-public") %>% 
+    html_text() %>%
+    str_extract("https[\\w\\.\\-:/]+?UK_testing_time_series.csv")
+  stopifnot(url.exists(urlc))
   urlc
 }
 

@@ -1,5 +1,6 @@
 suppressPackageStartupMessages({
-  library(tidyverse)
+  library(rvest)
+  library(RCurl)
   library(readxl)
   library(glue)
   library(broom)
@@ -11,4 +12,5 @@ suppressPackageStartupMessages({
   library(sf)
   library(rnaturalearth)
   library(rnaturalearthdata)
+  library(tidyverse)
 })
