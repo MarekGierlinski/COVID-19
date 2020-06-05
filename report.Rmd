@@ -12,7 +12,9 @@ output:
 ```{r setup, include=FALSE}
 library(drake)
 knitr::opts_chunk$set(
-  echo = FALSE
+  echo = FALSE,
+  message=FALSE,
+  warning=FALSE
 )
 ```
 
@@ -92,7 +94,7 @@ readd(fig_daily_deaths_2)
 
 # Recent cases and deaths
 
-Reported daily cases and deaths (per million), averaged over last seven days. Only countries with at least 1 million population are included. Error bars are 95% confidence intervals. The plot shows the top 20 countries.
+Reported daily cases and deaths (per million), averaged over last seven days. Only countries with at least 1 million population are included. The plot shows the top 10 countries.
 
 ```{r recent_daily_deaths, fig.width=6, fig.height=3}
 readd(fig_recent_daily_cases)
@@ -162,7 +164,7 @@ These data contain time series of COVID-19 testing in all four nations of the UK
 
 The UK testing data includes number of people tested under Pillar 1 and number of positives. These figures are consistent between three nations and can be compared (though they don't include positives outside labs/hospitals).
 
-```{r fig_testing, fig.width=7, fig.height=3, message=FALSE, warning=FALSE}
+```{r fig_testing, fig.width=8, fig.height=3, message=FALSE, warning=FALSE}
 readd(fig_testing_people)
 readd(fig_testing_positives)
 ```

@@ -73,7 +73,7 @@ uk_pop <- tribble(
 get_url_testing <- function() {
   urlc <- read_html("https://www.gov.uk/guidance/coronavirus-covid-19-information-for-the-public") %>% 
     html_text() %>%
-    str_extract("https[\\w\\.\\-:/]+?UK_testing_time_series.csv")
+    str_extract("https[\\w\\.\\-:/]+?testing_time_series.csv")
   stopifnot(url.exists(urlc))
   urlc
 }
@@ -589,6 +589,35 @@ plot_heatmap <- function(cvd, what="new_cases", min.val=5) {
     labs(x="Date", y=NULL, fill=what)
 }
 
+plot_smooth_heatmap <- function(cvd, what="deaths", min.val=10, min.pop=1e6,
+                                min.date="2020-03-01", span=0.3) {
+  w <- glue("new_{what}_pop")
+  x <- cvd %>% 
+    filter(population >= min.pop & date >= min.date) %>% 
+    mutate(y = !!sym(w), day = as.integer(date))
+  
+  cd <- x %>% 
+    group_by(country) %>% 
+    summarise(tot = sum(y), cg = sum(y * day) / sum(y), mx = max(y)) %>% 
+    filter(mx > min.val) %>% 
+    arrange(cg) %>% 
+    mutate(country = as_factor(country))
+  
+  d <- x %>% 
+    filter(country %in% cd$country) %>% 
+    mutate(country = factor(country, levels = cd$country))
+  
+  df <- make_country_fits(d, cd$country, span=span) %>% 
+    mutate(date = as.Date(day, origin="1970-01-01"))
+  ggplot(df, aes(x=date, y=country, fill=y)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_tile() +
+    #scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis") +
+    scale_fill_viridis_c(option="cividis", trans="sqrt") +
+    labs(x="Date", y=NULL, fill=glue("{what} per million"))
+}
+
 plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South Korea", val.min=0.05, val.max=0.2, cntry_short=NULL) {
   if(is.null(cntry_short)) cntry_short <- cntry
   
@@ -838,7 +867,7 @@ plot_england_scotland <- function() {
 }
 
 
-plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
+plot_recent_daily_ <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
   s <- what %>% str_remove("new_") %>% str_remove("_pop")
   d <- cvd %>%
     filter(date > max(date) - n & population >= min.pop) %>% 
@@ -859,6 +888,33 @@ plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, to
     labs(y = glue("Reported {s} per million per day (mean and 95% CI over last {n} days)"), x=NULL) +
     scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M_up) * 1.05))
 }
+
+plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
+  s <- what %>% str_remove("new_") %>% str_remove("_pop")
+  d <- cvd %>%
+    filter(date > max(date) - n & population >= min.pop) %>% 
+    mutate(delta = as.character(max(date) - date + 1)) %>% 
+    mutate(val = !!sym(what))
+  md <- d %>% 
+    group_by(country) %>% 
+    summarise(M = median(val, na.rm=TRUE)) %>% 
+    arrange(-M) %>%
+    head(top.n)
+  ct <- md$country %>% as_factor()
+  
+  md %>% 
+    left_join(d, by="country") %>% 
+    mutate(country = factor(country, levels = ct) %>% fct_rev()) %>% 
+  ggplot(aes(x=country, y=val, fill=as.character(date))) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_boxplot(outlier.shape = NA, colour="grey70", fill=NA) +
+    geom_beeswarm(shape=21, cex=1.5) +
+    coord_flip() +
+    labs(y = glue("Reported {s} per million per day (last {n} days)"), x=NULL, fill="Date") +
+    scale_fill_viridis_d()
+}
+
 
 plot_testing <- function(d, what="positives") {
   d <- d %>% 

@@ -14,7 +14,6 @@ countries_day <- c(
   "Ireland",
   "Switzerland",
   "Canada"
-  #"Sweden"
 )
 countries_2 <- c(
   "Argentina",

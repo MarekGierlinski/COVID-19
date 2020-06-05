@@ -37,7 +37,7 @@ plots <- drake_plan(
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.5),
   fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.5, scls="fixed", ymax=30),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.5),
-  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.5, scls="fixed", ymax=150),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.5, scls="fixed", ymax=200),
   fig_shift_cases = plot_shifts(covid, countries_day),
   
   fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.5, cut.day=0),
@@ -46,8 +46,8 @@ plots <- drake_plan(
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.5),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.5),
   
-  fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=20),
-  fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=20),
+  fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=10),
+  fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=10),
   
   fig_uk_korea_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="the UK", base_country = "South Korea", val.min=0.05, val.max=0.2),
   fig_uk_germany_excess = plot_death_excess(covid, cntry="United Kingdom", cntry_short="UK", base_country = "Germany", val.min=0.05, val.max=0.5),
@@ -64,7 +64,10 @@ plots <- drake_plan(
   fig_map_eur_deaths = plot_map_europe(covid, what="deaths", brks=0:5*10000),
   fig_map_eur_cases = plot_map_europe(covid, what="cases", brks=0:5*100000),
   fig_map_eur_deaths_pop = plot_map_europe(covid, what="deaths_pop",brks=seq(0,10,2)*100),
-  fig_map_eur_cases_pop = plot_map_europe(covid, what="cases_pop", brks=0:10*1000)
+  fig_map_eur_cases_pop = plot_map_europe(covid, what="cases_pop", brks=0:10*1000),
+  
+  fig_heatmap_deaths = plot_smooth_heatmap(covid, what="deaths", min.val=5),
+  fig_heatmap_cases = plot_smooth_heatmap(covid, what="cases", min.val=100)
 
 )
 
