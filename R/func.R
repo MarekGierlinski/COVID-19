@@ -73,7 +73,7 @@ uk_pop <- tribble(
 get_url_testing <- function() {
   urlc <- read_html("https://www.gov.uk/guidance/coronavirus-covid-19-information-for-the-public") %>% 
     html_text() %>%
-    str_extract("https[\\w\\.\\-:/]+?testing_time_series.csv")
+    str_extract("https[\\w\\.\\-:/]+?testing[_-]time[_-]series[\\w]*?.csv")
   stopifnot(url.exists(urlc))
   urlc
 }

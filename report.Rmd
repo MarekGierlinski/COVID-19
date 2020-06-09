@@ -51,22 +51,12 @@ readd(fig_shifted_deaths_pop)
 
 # Daily data
 
-## Free y-scale
 
 Daily cases (top) and deaths (bottom) from a larger selection of countries. Green curves show a loess fit. The relative day is found using a time-alignment procedure described above.
 
 ```{r daily, fig.width=8, fig.height=5}
 readd(fig_daily_cases)
 readd(fig_daily_deaths)
-```
-
-## Fixed y-scale
-
-Using a fixed y-scale can help comparing different countries.
-
-```{r daily_fixed, fig.width=8, fig.height=5}
-readd(fig_daily_cases_fixed)
-readd(fig_daily_deaths_fixed)
 ```
 
 
