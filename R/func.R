@@ -590,7 +590,7 @@ plot_heatmap <- function(cvd, what="new_cases", min.val=5) {
 }
 
 plot_smooth_heatmap <- function(cvd, what="deaths", min.val=10, min.pop=1e6,
-                                min.date="2020-03-01", span=0.3) {
+                                min.date="2020-03-01", span=0.3, brks=NULL) {
   w <- glue("new_{what}_pop")
   x <- cvd %>% 
     filter(population >= min.pop & date >= min.date) %>% 
@@ -599,7 +599,7 @@ plot_smooth_heatmap <- function(cvd, what="deaths", min.val=10, min.pop=1e6,
   cd <- x %>% 
     group_by(country) %>% 
     summarise(tot = sum(y), cg = sum(y * day) / sum(y), mx = max(y)) %>% 
-    filter(mx > min.val) %>% 
+    filter(tot > min.val) %>% 
     arrange(cg) %>% 
     mutate(country = as_factor(country))
   
@@ -611,10 +611,16 @@ plot_smooth_heatmap <- function(cvd, what="deaths", min.val=10, min.pop=1e6,
     mutate(date = as.Date(day, origin="1970-01-01"))
   ggplot(df, aes(x=date, y=country, fill=y)) +
     theme_bw() +
-    theme(panel.grid = element_blank()) +
+    theme(
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.border =  element_blank()
+    ) +
     geom_tile() +
     #scale_fill_viridis_c(breaks=lbrks, labels=labs, option="cividis") +
-    scale_fill_viridis_c(option="cividis", trans="sqrt") +
+    scale_fill_viridis_c(option="magma", trans="log1p", breaks=brks) +
+    scale_x_date(expand = c(0,0)) +
     labs(x="Date", y=NULL, fill=glue("{what} per million"))
 }
 

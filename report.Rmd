@@ -81,6 +81,14 @@ readd(fig_daily_cases_2)
 readd(fig_daily_deaths_2)
 ```
 
+## Heatmaps
+
+Another representation of the same data. Cases and deaths (per million) for countries with at least 1000 cases per million and at least 50 deaths per million, respectively. Plots show smooth data (the same loess smoothing as above), ordered by the centre of gravity of each time course.
+
+```{r heatmaps, fig.width=6, fig.height=5}
+readd(fig_heatmap_cases)
+readd(fig_heatmap_deaths)
+```
 
 # Recent cases and deaths
 

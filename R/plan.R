@@ -66,8 +66,8 @@ plots <- drake_plan(
   fig_map_eur_deaths_pop = plot_map_europe(covid, what="deaths_pop",brks=seq(0,10,2)*100),
   fig_map_eur_cases_pop = plot_map_europe(covid, what="cases_pop", brks=0:10*1000),
   
-  fig_heatmap_deaths = plot_smooth_heatmap(covid, what="deaths", min.val=5),
-  fig_heatmap_cases = plot_smooth_heatmap(covid, what="cases", min.val=100)
+  fig_heatmap_deaths = plot_smooth_heatmap(covid, what="deaths", min.val=50, brks=c(0,1,2,5,10,20,50)),
+  fig_heatmap_cases = plot_smooth_heatmap(covid, what="cases", min.val=1000, brks=c(0,10,20,50,100,200,500))
 
 )
 
