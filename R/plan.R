@@ -43,6 +43,9 @@ plots <- drake_plan(
   fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.5, cut.day=0),
   fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.5, cut.day=0),
   
+  fig_daily_deaths_3 = plot_daily(covid, countries_3, what="deaths", span=0.4, cut.day=0),
+  fig_daily_cases_3 = plot_daily(covid, countries_3, what="cases", span=0.4, cut.day=0),
+  
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.5),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.5),
   
@@ -82,7 +85,8 @@ figs <- plots %>%
   mutate(height = if_else(str_detect(name, "fig_cases_deaths"), 11, height)) %>% 
   mutate(height = if_else(str_detect(name, "excess"), 6, height)) %>% 
   mutate(height = if_else(str_detect(name, "ratio"), 8, height)) %>%
-  mutate(height = if_else(str_detect(name, "new"), 10, height))
+  mutate(height = if_else(str_detect(name, "new"), 10, height)) %>% 
+  mutate(height = if_else(str_detect(name, "heatmap"), 6, height))
 
 save_figures <- drake_plan(
   figures = target(
