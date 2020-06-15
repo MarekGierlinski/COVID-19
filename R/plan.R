@@ -4,7 +4,6 @@ read_data <- drake_plan(
   covid = process_covid(covid_raw, gdp),
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
   covid_europe = covid %>% filter(id %in% europe),
-  ons = read_ons(),
   gdp = read_gdp("data/UNdata_Export_20200427_142511000.csv"),
   print_date = print(paste("Last date in file:", covid %>% pull(date) %>% max()))
 )
@@ -71,7 +70,6 @@ plots <- drake_plan(
   
   fig_heatmap_deaths = plot_smooth_heatmap(covid, what="deaths", min.val=50, brks=c(0,1,2,5,10,20,50)),
   fig_heatmap_cases = plot_smooth_heatmap(covid, what="cases", min.val=1000, brks=c(0,10,20,50,100,200,500))
-
 )
 
 figs <- plots %>% 
@@ -117,6 +115,22 @@ testing <- drake_plan(
   save_fig_testing_positives = ggsave("fig/testing_positives.png", fig_testing_positives, device="png", width=7, height=3)
 )
 
+excess <- drake_plan(
+  url_excess = get_url_excess(),
+  exc = read_excess(url_excess),
+  print_exc_date = print(paste("Last date in excess file:", exc %>% pull(date) %>% max())),
+  
+  fig_exc_countries = plot_excess_details(exc, ncol=3, y.scale=2.9),
+  fig_exc_uk = plot_excess_details(exc, "UK", by.region=TRUE, ncol=3, y.scale=4),
+  #fig_exc_prop_countries = plot_excess_prop(exc, ncol=3),
+  fig_exc_prop_uk = plot_excess_prop(exc, "UK", by.region=TRUE, ncol=3),
+  
+  save_fig_exc_countries = annotate_save("fig/exc_countries.png", fig_exc_countries, url_excess, width=10, height=8),
+  save_fig_exc_uk = annotate_save("fig/exc_uk.png", fig_exc_uk, url_excess, width=10, height=8),
+  #save_fig_exc_prop_countries = annotate_save("fig/exc_prop_countries.png", fig_exc_prop_countries, url_excess, width=10, height=8),
+  save_fig_exc_prop_uk = annotate_save("fig/exc_prop_uk.png", fig_exc_prop_uk, url_excess, width=10, height=8)
+)
+
 knit_report <- drake_plan(
   report = rmarkdown::render(
     input = knitr_in("report.Rmd"),
@@ -129,8 +143,8 @@ plan <- bind_rows(
   read_data,
   plots,
   save_figures,
-  ons_figures,
   testing,
+  excess,
   knit_report
   #animations
 )

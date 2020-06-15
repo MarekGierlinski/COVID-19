@@ -94,6 +94,16 @@ read_testing <- function(urlc) {
     left_join(uk_pop, by="nation")
 }
 
+get_url_excess <- function() {
+  urlc <- "https://github.com/Financial-Times/coronavirus-excess-mortality-data/raw/master/data/ft_excess_deaths.csv"
+  stopifnot(url.exists(urlc))
+  urlc
+}
+
+read_excess <- function(urlc) {
+  read_csv(urlc, col_types = cols())
+}
+
 
 process_covid <- function(cvd, gdp) {
   cvd %>% 
@@ -797,31 +807,37 @@ plot_week_days_total <- function(cvd) {
 }
 
 
-plot_map_europe <- function(cvd, what="deaths", val.max=NULL, brks=NULL) {
-  val <- glue("new_{what}")
+plot_map_europe <- function(cvd, what, brks) {
+  when <- max(cvd$date) - 1
+  d <- cvd %>% filter(!(country %in% c("San Marino", "Andorra"))) 
+  plot_map(d, what, when, brks, "Europe", val.max=NULL, x.lim=c(-23, 45), y.lim=c(36, 70))
+}
+
+
+
+plot_map <- function(cvd, what, when, brks, cont, val.max, x.lim=NULL, y.lim=NULL) {
   brks <- sort(rep(brks,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   covid_tot <- cvd %>%
-    group_by(countryterritoryCode) %>%
-    summarise(tot = sum(!!sym(val)))
-  eur_map <- ne_countries(scale=50, continent="Europe", returnclass = "sf") %>% 
+    mutate(val = !!sym(what))
+  if(!is.null(when)) covid_tot <- covid_tot %>% filter(date == when)
+  cvd_map <- ne_countries(scale=50, continent=cont, returnclass = "sf") %>% 
     left_join(covid_tot, by=c("iso_a3" = "countryterritoryCode")) %>%
-    filter(!(admin %in% c("San Marino", "Andorra"))) 
-    #filter(!is.na(tot))
+    filter(!is.na(date))
   w <- str_remove(what, "_pop")
   leg <- ifelse(str_detect(what, "pop"), glue("{w} per million"), w)
   
-  g <- ggplot(eur_map) +
+  g <- ggplot(cvd_map) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
       axis.text = element_blank(),
       axis.ticks = element_blank()
     ) +
-    geom_sf(aes(fill=tot), size=0.2) +
+    geom_sf(aes(fill=val), size=0.2) +
     labs(fill=leg) +
-    xlim(-23, 45) +
-    ylim(36, 70)
+    xlim(x.lim) +
+    ylim(y.lim)
   if(is.null(val.max)) {
     g <- g + scale_fill_viridis_c(option="cividis", breaks=brks, labels=labs)
   } else {
@@ -936,4 +952,87 @@ plot_testing <- function(d, what="positives") {
     facet_wrap(~nation, ncol=3) +
     scale_y_continuous(expand=c(0,0), limits=c(0,mx)) +
     labs(x=NULL, y=NULL, title=glue("Daily {what} per million") %>% str_replace("_", " "))
+}
+
+prep_country_region <- function(d, ctry, by.region) {
+  if(is.null(ctry)) ctry <- unique(d$country)
+  
+  if(by.region) {
+    d <- d %>% 
+      mutate(group = region) %>% 
+      filter(region != country)
+  } else {
+    d <- d %>% 
+      mutate(group = country) %>% 
+      filter(region == country)
+  }
+  
+  d <- d %>% 
+    filter(country %in% ctry & date > "2015-01-01")
+}
+
+plot_excess_details <- function(d, ctry=NULL, by.region=FALSE, ncol=1, y.scale=3) {
+  d <- prep_country_region(d, ctry, by.region)
+  bkg <- d %>% filter(date < "2020-01-01")
+  fg <- d %>% filter(date >= "2020-01-01")
+  xmx <- max(fg$week) + 1
+  ymx <- max(d$deaths) * 1.05
+  
+  bl <- d %>%
+    group_by(group) %>%
+    summarise(maxy = median(expected_deaths) * y.scale, week=1)
+  
+  ggplot() +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_blank(data=bl, aes(x=week, y=maxy)) +
+    geom_blank(data=bl, aes(x=week, y=0)) +
+    geom_beeswarm(data=bkg, aes(x=week, y=deaths), colour="grey70", size=0.5, cex=0.6) +
+    #geom_step(data=fg, aes(x=week-0.5, y=deaths), size=0.7) +
+    geom_line(data=fg, aes(x=week, y=deaths), colour="grey90") +
+    geom_point(data=fg, aes(x=week, y=deaths), size=1.5, shape=22, fill=cbPalette[3]) +
+    facet_wrap(~ group, ncol=ncol, scales = "free_y") +
+    scale_x_continuous(breaks=c(1,10,20,30,40,50), limits=c(0, xmx)) +
+    scale_y_continuous(expand=c(0,0)) +
+    labs(x="Week", y="Deaths")
+}
+
+plot_excess_prop <- function(x, ctry=NULL, by.region=FALSE, ncol=1, y.scale=3) {
+  d <- prep_country_region(x, ctry, by.region) %>% 
+    filter(week <= max(week[year==2020])) %>%
+    group_split(week, group) %>%
+    map_dfr(function(w) {
+      if(nrow(w) > 1 & nrow(w[w$year==2020, ]) == 1) {
+        d2020 <- w[w$year==2020, ]$deaths
+        w <- w %>% 
+          mutate(prop = d2020 / deaths) %>% 
+          filter(year < 2020)
+        w$pval = t.test(w$prop, mu = 1, alternative = "greater")$p.value
+        w
+      }
+    }) %>% 
+    group_by(group) %>% 
+    mutate(p.adj = p.adjust(pval, method="BH"), sig = p.adj < 0.05)
+
+  ymx <- max(d$prop) * 1.05
+  
+  bl <- d %>%
+    group_by(group) %>%
+    summarise(maxy = max(prop)*1.05, week=1)
+  
+  ggplot(d) +
+    theme_bw() +
+    theme(
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      legend.position = "none"
+    ) +
+    #geom_blank(data=bl, aes(x=week, y=maxy)) +
+    #geom_blank(data=bl, aes(x=week, y=0)) +
+    geom_beeswarm(aes(x=week, y=prop, colour=sig), size=1, cex=0.5) +
+    scale_colour_manual(values=c("black", "red"))+
+    facet_wrap(~ group, ncol=ncol, scales = "fixed") +
+    scale_x_continuous(breaks=c(1,5,10,15,20,25,30,35,40,45,50)) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, ymx)) +
+    labs(x="Week", y="Excess deaths ratio")
 }
