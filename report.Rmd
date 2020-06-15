@@ -174,3 +174,36 @@ The UK testing data includes number of people tested under Pillar 1 and number o
 readd(fig_testing_people)
 readd(fig_testing_positives)
 ```
+
+
+# Mortality excess
+
+Financial Times provides with an excellent resource of excess mortality data, meticulously combined from various [national sources](https://github.com/Financial-Times/coronavirus-excess-mortality-data/blob/master/sources.md). Excess mortality allows for direct comparison between regions and countries regardless of COVID-19 counting methodology. By comparing this year's data with 2015-2019 death counts we can not only calculate excess deaths, but also test if the excess is statistically significant.
+
+I use the following data set
+
+[`r readd(url_excess)`](`r readd(url_excess)`)
+
+from FT's [GitHub](https://github.com/Financial-Times/coronavirus-excess-mortality-data/) repository. See also FT's [coronavirus tracker page](https://www.ft.com/content/a26fbf7e-48f8-11ea-aeb3-955839e06441).
+
+## World data
+
+This plot shows data from countries included in FT's data. The grey points are years 2015-2019 (where available), the green squares shows 2020 data.
+
+```{r exc_countries, fig.width=8, fig.height=8}
+readd(fig_exc_countries)
+```
+
+## UK data
+
+This plot shows 2015-2019 (grey points) and 2020 (green squares) deaths for UK regions.
+
+```{r exc_uk, fig.width=8, fig.height=8}
+readd(fig_exc_uk)
+```
+
+The next plot shows 2020 deaths divided by deaths from each of the years 2015-2019, in corresponding weeks. One dot corresponds to one year. When there is no mortality excess, ratios are near 1. Ratios greater than 1 indicate mortality excess in 2020. Red points indicate statistically significant excess (one-sample t-test, Benjamini-Hochberg corrected within each region, significance limit of 0.05).
+
+```{r exc_prop_uk, fig.width=8, fig.height=8}
+readd(fig_exc_prop_uk)
+```

@@ -118,12 +118,12 @@ testing <- drake_plan(
 excess <- drake_plan(
   url_excess = get_url_excess(),
   exc = read_excess(url_excess),
-  print_exc_date = print(paste("Last date in excess file:", exc %>% pull(date) %>% max())),
+  print_exc_date = print(paste("Last date in excess file:", exc %>% drop_na() %>%  pull(date) %>% max())),
   
-  fig_exc_countries = plot_excess_details(exc, ncol=3, y.scale=2.9),
-  fig_exc_uk = plot_excess_details(exc, "UK", by.region=TRUE, ncol=3, y.scale=4),
+  fig_exc_countries = plot_excess_details(exc, ncol=4, y.scale=2.9),
+  fig_exc_uk = plot_excess_details(exc, "UK", by.region=TRUE, ncol=4, y.scale=4),
   #fig_exc_prop_countries = plot_excess_prop(exc, ncol=3),
-  fig_exc_prop_uk = plot_excess_prop(exc, "UK", by.region=TRUE, ncol=3),
+  fig_exc_prop_uk = plot_excess_prop(exc, "UK", by.region=TRUE, ncol=4),
   
   save_fig_exc_countries = annotate_save("fig/exc_countries.png", fig_exc_countries, url_excess, width=10, height=8),
   save_fig_exc_uk = annotate_save("fig/exc_uk.png", fig_exc_uk, url_excess, width=10, height=8),
