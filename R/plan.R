@@ -124,9 +124,17 @@ excess <- drake_plan(
   fig_exc_uk = plot_excess_details(exc, "UK", by.region=TRUE, ncol=4, y.scale=4),
   #fig_exc_prop_countries = plot_excess_prop(exc, ncol=3),
   fig_exc_prop_uk = plot_excess_prop(exc, "UK", by.region=TRUE, ncol=4),
+  fig_excess_deaths_uk = plot_exc_total_deaths(exc, "UK"),
+  fig_excess_weekly_deaths_uk = plot_exc_weekly_deaths(exc, "UK"),
+  exc_deaths_2010 = excess_deaths(exc, "UK", year1=2010),
+  exc_deaths_2015 = excess_deaths(exc, "UK", year1=2015),
+  last_week_uk = last_week(exc, "UK"),
+  last_date_uk = last_date(exc, "UK"),
   
   save_fig_exc_countries = annotate_save("fig/exc_countries.png", fig_exc_countries, url_excess, width=10, height=8),
   save_fig_exc_uk = annotate_save("fig/exc_uk.png", fig_exc_uk, url_excess, width=10, height=8),
+  save_fig_exc_deaths_uk = annotate_save("fig/exc_uk_deaths.png", fig_excess_deaths_uk, url_excess, width=6, height=4),
+  save_fig_excess_weekly_deaths_uk = annotate_save("fig/exc_uk_weekly_deaths.png", fig_excess_weekly_deaths_uk, url_excess, width=8, height=4),
   #save_fig_exc_prop_countries = annotate_save("fig/exc_prop_countries.png", fig_exc_prop_countries, url_excess, width=10, height=8),
   save_fig_exc_prop_uk = annotate_save("fig/exc_prop_uk.png", fig_exc_prop_uk, url_excess, width=10, height=8)
 )

@@ -1036,3 +1036,68 @@ plot_excess_prop <- function(x, ctry=NULL, by.region=FALSE, ncol=1, y.scale=3) {
     scale_y_continuous(expand=c(0,0), limits=c(0, ymx)) +
     labs(x="Week", y="Excess deaths ratio")
 }
+
+
+last_week <- function(x, ctry="UK") {
+  x %>%
+    filter(country == ctry & region == ctry & year == 2020) %>%
+    pull(week) %>%
+    max()
+}
+
+last_date <- function(x, ctry="UK") {
+  x %>%
+    filter(country == ctry & region == ctry & year == 2020) %>% 
+    pull(date) %>%
+    max()
+}
+
+annual_deaths <- function(x, ctry = "UK") {
+  d <- x %>%
+    filter(country == ctry & region == ctry)
+  week.end <- last_week(x, ctry)
+  d <- d %>%
+    filter(week <= week.end) %>%
+    group_by(year) %>%
+    summarise(tot = sum(deaths), n = n())
+}
+
+plot_exc_total_deaths <- function(x, ctry="UK") {
+  d <- annual_deaths(x, ctry)
+  
+  week.end <- x %>%
+    filter(country == ctry & region == ctry) %>% 
+    filter(year == 2020) %>% pull(week) %>% max()
+  
+  ggplot(d, aes(x=year, y=tot/1000)) + 
+    theme_bw() +
+    geom_col() +
+    scale_x_continuous(breaks=seq(2010,2020,2)) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$tot/1000)*1.05)) +
+    labs(x="Year", y=glue("Deaths (thousands) weeks 1-{week.end}"))
+}
+
+plot_exc_weekly_deaths <- function(x, ctry = "uk") {
+  x %>% 
+    filter(country == ctry & region == ctry) %>%
+  ggplot(aes(x=date, y=deaths)) + 
+    theme_bw() +
+    geom_step() +
+    labs(x = "Date", y="Weekly deaths")
+}
+
+excess_deaths <- function(x, ctry, year1=2010, year2=2019) {
+  d <- annual_deaths(x, ctry)
+  base <- d %>% filter(year >= year1, year <= year2)
+  M <- mean(base$tot)
+  SE <- sd(base$tot) / sqrt(nrow(base))
+  tc <- qt(0.975, nrow(base) - 1)
+  CI <- SE * tc
+  D <- d[d$year == 2020, ]$tot - M
+  
+  list(
+    diff = signif(D, 2),
+    se = signif(SE, 2),
+    ci = signif(CI, 2)
+  )
+}

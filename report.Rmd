@@ -14,8 +14,10 @@ library(drake)
 knitr::opts_chunk$set(
   echo = FALSE,
   message=FALSE,
-  warning=FALSE
+  warning=FALSE,
+  cache=FALSE
 )
+N <- function(n) prettyNum(n, big.mark = ",")
 ```
 
 
@@ -186,6 +188,8 @@ I use the following data set
 
 from FT's [GitHub](https://github.com/Financial-Times/coronavirus-excess-mortality-data/) repository. See also FT's [coronavirus tracker page](https://www.ft.com/content/a26fbf7e-48f8-11ea-aeb3-955839e06441).
 
+At the moment this document was created, FT provided 2020 UK data up to week `r readd(last_week_uk)`, ending on `r format(readd(last_date_uk), format="%d %B %Y")`.
+
 ## World data
 
 This plot shows data from countries included in FT's data. The grey points are years 2015-2019 (where available), the green squares shows 2020 data.
@@ -207,3 +211,23 @@ The next plot shows 2020 deaths divided by deaths from each of the years 2015-20
 ```{r exc_prop_uk, fig.width=8, fig.height=8}
 readd(fig_exc_prop_uk)
 ```
+
+## Total excess deaths
+
+One does not simply quote total excess deaths without stating their uncertainty. As everything in nature, these quantities are variable. This plots show weekly deaths and total deaths for weeks from 1 to `r readd(last_week_uk)` (last available FT data):
+
+```{r uk_weekly_deaths, fig.width=5, fig.height=3}
+loadd(exc_deaths_2015, exc_deaths_2010)
+
+readd(fig_excess_weekly_deaths_uk)
+readd(fig_excess_deaths_uk) 
+```
+
+There is not only a lot of year-to-year variability, but also a strange step-wise change in 2015 (I don't know what it is). Hence, the excess deaths should be calculated by subtracting previous years' deaths (e.g. 2015-2019) from 2020 count and finding the mean and confidence interval of the difference. Using years 2015-2019 as baseline, we find the following number of excess deaths in the UK in 2020 (weeks 1-`r readd(last_week_uk)`):
+
+<font size="4">`r N(exc_deaths_2015$diff)`±`r N(exc_deaths_2015$ci)`</font>
+
+Errors are 95% confidence intervals. However, if we take all years 2010-2019 as baseline, we find  `r N(exc_deaths_2010$diff)`±`r N(exc_deaths_2010$ci)` excess deaths.
+
+WARNING: do not trust excess deaths numbers in media and social media until they quote them with confidence intervals and clearly state what baseline they used.
+
