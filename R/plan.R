@@ -1,11 +1,11 @@
 read_data <- drake_plan(
-  url_covid = get_url(),
+  url_covid = get_url_ecdc(),
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw, gdp),
   covid_sel = covid %>% filter(country %in% countries_sel) %>% filter(cases > 0) %>% mutate(country = factor(country, levels=countries_sel)),
   covid_europe = covid %>% filter(id %in% europe),
   gdp = read_gdp("data/UNdata_Export_20200427_142511000.csv"),
-  print_date = print(paste("Last date in file:", covid %>% pull(date) %>% max()))
+  print_date = print(paste("Last date in ECDC file:", covid %>% pull(date) %>% max()))
 )
 
 plots <- drake_plan(
@@ -33,20 +33,20 @@ plots <- drake_plan(
   fig_cases_deaths_both = plot_grid(fig_cases_deaths, fig_cases_deaths_pop, nrow=1),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
-  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.5),
-  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.5, scls="fixed", ymax=30),
-  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.5),
-  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.5, scls="fixed", ymax=200),
+  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.4),
+  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.4, scls="fixed", ymax=30),
+  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.4),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.4, scls="fixed", ymax=200),
   fig_shift_cases = plot_shifts(covid, countries_day),
   
-  fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.5, cut.day=0),
-  fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.5, cut.day=0),
+  fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.3, cut.day=0),
+  fig_daily_cases_2 = plot_daily(covid, countries_2, what="cases", span=0.3, cut.day=0),
   
-  fig_daily_deaths_3 = plot_daily(covid, countries_3, what="deaths", span=0.4, cut.day=0),
-  fig_daily_cases_3 = plot_daily(covid, countries_3, what="cases", span=0.4, cut.day=0),
+  fig_daily_deaths_3 = plot_daily(covid, countries_3, what="deaths", span=0.3, cut.day=0),
+  fig_daily_cases_3 = plot_daily(covid, countries_3, what="cases", span=0.3, cut.day=0),
   
-  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.5),
-  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.5),
+  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.4),
+  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.4),
   
   fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=10),
   fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=10),

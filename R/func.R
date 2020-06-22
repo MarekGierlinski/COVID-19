@@ -5,9 +5,10 @@ wd <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sun
 if(!dir.exists("fig")) dir.create("fig")
 
 
-get_url <- function() {
+get_url_ecdc <- function() {
   today <- Sys.Date()
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide.xlsx")
+  urlc <- "https://opendata.ecdc.europa.eu/covid19/casedistribution/csv"
+  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{today}.xlsx")
   stopifnot(url.exists(urlc))
   urlc
 }
@@ -108,17 +109,24 @@ read_excess <- function(urlc) {
 process_covid <- function(cvd, gdp) {
   cvd %>% 
     rename(
-      country = `countriesAndTerritories`,
+      country = countriesAndTerritories,
+      code = countryterritoryCode,
       new_cases = cases,
       new_deaths = deaths,
       id = geoId,
-      population = popData2018
+      population = popData2019
     ) %>%
-    mutate(country = str_replace_all(country, "_", " ")) %>% 
-    mutate(country = recode(country,
-      'United States of America' = "United States",
-      "CANADA" = "Canada"
-    )) %>%
+    mutate(
+      country = str_replace_all(country, "_", " ")) %>% 
+    mutate(
+      country = recode(country,
+        'United States of America' = "United States",
+        "CANADA" = "Canada"
+      ),
+      code = recode(code,
+        "XKX" = "KOS"
+      )
+    ) %>%
     mutate(
       date = as.Date(dateRep, format="%d/%m/%Y"),
       day_of_week = weekdays(date) %>% factor(levels=wd)
@@ -522,6 +530,15 @@ fit_loess_outliers <- function(w, n.iter=3, span=0.75) {
   return(fit)
 }
 
+rollmean_outliers <- function(x, n.iter=3, k=7) {
+  for(i in 1:n.iter) {
+    m <- rollmean(x, k, fill=NA, na.rm=TRUE)
+    diff <-  abs(x - m)
+    x[which.max(diff)] <- NA
+  }
+  return(m)
+}
+
 make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
   d %>% group_split(country) %>% 
     map_dfr(function(w) {
@@ -559,7 +576,7 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
     geom_line()  +
     scale_color_manual(values=cbPalette) +
     scale_fill_manual(values=cbPalette) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y_up)*1.05)) +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y, na.rm=TRUE)*1.05)) +
     labs(x="Relative day", y=glue("Daily {what} per million")) +
     geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
     geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2, nudge_x=0, min.segment.length = 0.5, hjust=0.5, segment.alpha = 0.3)
@@ -769,6 +786,7 @@ plot_week_days <- function(cvd, cntrs, what="deaths") {
     mutate(prop = y / sum(y))
   chi <- d %>% 
     ungroup() %>% 
+    filter(!is.na(y)) %>% 
     group_split(country) %>% 
     map_dfr(function(w) {
       chisq.test(w$y) %>%
@@ -809,7 +827,7 @@ plot_week_days_total <- function(cvd) {
 
 plot_map_europe <- function(cvd, what, brks) {
   when <- max(cvd$date) - 1
-  d <- cvd %>% filter(!(country %in% c("San Marino", "Andorra"))) 
+  d <- cvd %>% filter(!(country %in% c("San Marino", "Andorra", "Luxembourg"))) 
   plot_map(d, what, when, brks, "Europe", val.max=NULL, x.lim=c(-23, 45), y.lim=c(36, 70))
 }
 
@@ -822,7 +840,7 @@ plot_map <- function(cvd, what, when, brks, cont, val.max, x.lim=NULL, y.lim=NUL
     mutate(val = !!sym(what))
   if(!is.null(when)) covid_tot <- covid_tot %>% filter(date == when)
   cvd_map <- ne_countries(scale=50, continent=cont, returnclass = "sf") %>% 
-    left_join(covid_tot, by=c("iso_a3" = "countryterritoryCode")) %>%
+    left_join(covid_tot, by=c("su_a3" = "code")) %>%
     filter(!is.na(date))
   w <- str_remove(what, "_pop")
   leg <- ifelse(str_detect(what, "pop"), glue("{w} per million"), w)

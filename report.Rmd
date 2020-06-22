@@ -145,7 +145,7 @@ readd(fig_uk_korea_excess)
 
 # European maps
 
-Maps showing cases and deaths across Europe.
+Maps showing cases and deaths across Europe. Luxembourg, San Marino and Andorra are not shown (they are outliers in cases/deaths per population).
 
 ## Raw counts
 
