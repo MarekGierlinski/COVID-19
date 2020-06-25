@@ -114,7 +114,8 @@ process_covid <- function(cvd, gdp) {
       new_cases = cases,
       new_deaths = deaths,
       id = geoId,
-      population = popData2019
+      population = popData2019,
+      continent = continentExp
     ) %>%
     mutate(
       country = str_replace_all(country, "_", " ")) %>% 
@@ -542,6 +543,7 @@ rollmean_outliers <- function(x, n.iter=3, k=7) {
 make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
   d %>% group_split(country) %>% 
     map_dfr(function(w) {
+      w[w$y == 0, "y"] <- NA
       fit <- fit_loess_outliers(w, n.iter, span)
       x <- seq(min(w$day), max(w$day), step)
       f <- predict(fit, data.frame(day=x), se=TRUE)
@@ -1118,4 +1120,21 @@ excess_deaths <- function(x, ctry, year1=2010, year2=2019) {
     se = signif(SE, 2),
     ci = signif(CI, 2)
   )
+}
+
+
+plot_continents <- function(cvd, what, brks, bw=7) {
+  labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
+  cvd %>%
+    filter(date > as.Date("2020-01-01")) %>%
+    group_by(continent, date) %>% 
+    summarise(tot = sum(!!sym(what))) %>%
+    mutate(stot = ksmooth(date, tot, x.points=date, bandwidth=bw)$y) %>%
+    mutate(continent = factor(continent, level=c("Asia", "Europe", "America", "Africa", "Oceania")) %>% fct_rev) %>%
+  ggplot(aes(x=date, y=stot, fill=continent)) +
+    theme_bw() +
+    geom_area(colour="black") +
+    scale_fill_brewer(palette="YlGnBu") +
+    labs(x=NULL, y=paste("Daily", str_remove(what, "new_")), fill="Continent") +
+    scale_y_continuous(breaks=brks, labels=labs)
 }

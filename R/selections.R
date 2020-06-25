@@ -17,17 +17,17 @@ countries_day <- c(
 )
 countries_2 <- c(
   "Argentina",
+  "Armenia",
   "Brazil",
   "Chile",
   "Colombia",
   "Mexico",
   "Egypt",
-  "Pakistan",
   "India",
   "Bangladesh",
-  "Indonesia",
   "South Africa",
-  "Bolivia"
+  "Bolivia",
+  "Guatemala"
 )
 
 countries_3 <- c(
@@ -37,7 +37,9 @@ countries_3 <- c(
   "Serbia",
   "Portugal",
   "South Korea",
-  "United States"
+  "United States",
+  "Romania",
+  "Turkey"
 )
 
 europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LV-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
