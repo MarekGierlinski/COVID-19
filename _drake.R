@@ -1,3 +1,5 @@
+options(dplyr.summarise.inform = FALSE)
+
 source("R/packages.R")
 source("R/func.R")
 source("R/selections.R")

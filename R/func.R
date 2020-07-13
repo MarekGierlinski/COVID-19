@@ -2,21 +2,29 @@ shapes <- c(15:18, 0:14)
 cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 wd <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
+ukPalette <- c(
+  England = rgb(255, 90, 90, max=255),
+  Scotland = rgb(110, 110, 255, max=255),
+  Wales = rgb(255, 214, 0, max=255),
+  `Northern Ireland` = rgb(20, 185, 90, max=255)
+)
+
 if(!dir.exists("fig")) dir.create("fig")
 
 
 get_url_ecdc <- function() {
   today <- Sys.Date()
   urlc <- "https://opendata.ecdc.europa.eu/covid19/casedistribution/csv"
-  urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{today}.xlsx")
+  #urlc <- glue("https://ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-{today}.xlsx")
   stopifnot(url.exists(urlc))
   urlc
 }
 
 read_covid <- function(urlc) {
-  tmp <- tempfile()
-  download.file(urlc, tmp, mode="wb")
-  readxl::read_excel(tmp)
+  #tmp <- tempfile()
+  #download.file(urlc, tmp, mode="wb")
+  #readxl::read_excel(tmp)
+  read_csv(urlc)
 }
 
 # Read and process data from World Bank
@@ -59,8 +67,23 @@ read_ons <- function() {
 }
 
 
+read_staging_data <- function() {
+  u <- 'https://api.coronavirus-staging.data.gov.uk/v1/data?filters=areaType=nation&structure={"date":"date","newDeathsByPublishDate":"newDeathsByPublishDate","newAdmissions":"newAdmissions","newCasesByPublishDate":"newCasesByPublishDate","hospitalCases":"hospitalCases","covidOccupiedMVBeds":"covidOccupiedMVBeds","areaName":"areaName"}&format=csv'
+  read_csv(u) %>% 
+    rename(
+      new_cases = newCasesByPublishDate,
+      new_deaths = newDeathsByPublishDate,
+      hospital_cases = hospitalCases,
+      new_admissions = newAdmissions,
+      mv_beds = covidOccupiedMVBeds,
+      nation = areaName
+    ) %>% 
+    drop_na()
+}
+
+
 # 2018 population, source: Wikipedia
-uk_pop <- tribble(
+uk_pop <- tibble::tribble(
   ~nation, ~population,
   "England", 55977178,
   "Scotland", 5438100,
@@ -85,12 +108,13 @@ read_testing <- function(urlc) {
     rename(
       nation = Nation,
       pillar = Pillar,
-      tests = "Daily number of tests",
-      people_tested = "Daily number of people tested",
-      positives = "Daily number of positive cases",
+      tests = "Daily number of tests processed",
+      positives_old = "Daily number of positive cases (old methodology)",
+      positives_new = "Daily number of positive cases (new methodology)",
       tests_processed = "Daily In-person (tests processed)",
       tests_sent = "Daily Delivery (tests sent out)"
     ) %>% 
+    mutate(positives = if_else(is.na(positives_old), positives_new, positives_old)) %>% 
     select(-starts_with("Cumul")) %>% 
     left_join(uk_pop, by="nation")
 }
@@ -531,13 +555,35 @@ fit_loess_outliers <- function(w, n.iter=3, span=0.75) {
   return(fit)
 }
 
+
+rollmean_boundary <- function(x, k) {
+  n <- floor(k / 2)
+  if(n == k/2) stop("k needs to be odd.")
+  xx = c(rep(x[1], n), x, rep(x[length(x)], n))
+  zoo::rollmean(xx, k, na.rm=TRUE)
+}
+
 rollmean_outliers <- function(x, n.iter=3, k=7) {
   for(i in 1:n.iter) {
-    m <- rollmean(x, k, fill=NA, na.rm=TRUE)
+    m <- rollmean_boundary(x, k)
     diff <-  abs(x - m)
     x[which.max(diff)] <- NA
   }
   return(m)
+}
+
+make_country_fits_ <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
+  d %>% group_split(country) %>% 
+    map_dfr(function(w) {
+      w %>% 
+        mutate(y = if_else(y == 0, as.numeric(NA), y)) %>% 
+        mutate(y = rollmean_boundary(y, k=7))
+    }) %>% 
+    mutate(
+      y = if_else(day < cut.day, 0, y),
+      y = if_else(y < 0, 0, y),
+      country = factor(country, levels=cntrs)
+    )
 }
 
 make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
@@ -562,6 +608,7 @@ make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3
       country = factor(country, levels=cntrs)
     )
 }
+
 
 plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
                             span=0.75, base_country="Italy", step=0.5, n.iter=3) {
@@ -1072,9 +1119,10 @@ last_date <- function(x, ctry="UK") {
     max()
 }
 
-annual_deaths <- function(x, ctry = "UK") {
+annual_deaths <- function(x, ctry = "UK", reg = NULL) {
+  if(is.null(reg)) reg <- ctry
   d <- x %>%
-    filter(country == ctry & region == ctry)
+    filter(country == ctry & region == reg)
   week.end <- last_week(x, ctry)
   d <- d %>%
     filter(week <= week.end) %>%
@@ -1106,8 +1154,8 @@ plot_exc_weekly_deaths <- function(x, ctry = "uk") {
     labs(x = "Date", y="Weekly deaths")
 }
 
-excess_deaths <- function(x, ctry, year1=2010, year2=2019) {
-  d <- annual_deaths(x, ctry)
+excess_deaths <- function(x, ctry, reg=NULL, year1=2010, year2=2019) {
+  d <- annual_deaths(x, ctry, reg)
   base <- d %>% filter(year >= year1, year <= year2)
   M <- mean(base$tot)
   SE <- sd(base$tot) / sqrt(nrow(base))
@@ -1137,4 +1185,130 @@ plot_continents <- function(cvd, what, brks, bw=7) {
     scale_fill_brewer(palette="YlGnBu") +
     labs(x=NULL, y=paste("Daily", str_remove(what, "new_")), fill="Continent") +
     scale_y_continuous(breaks=brks, labels=labs)
+}
+
+UK_nation_excess <- function(x) {
+  map_dfr(uk_pop$nation, function(r) {
+    ad <- annual_deaths(x, "UK", r)
+    current <- ad[ad$year=="2020", ]$tot
+    ad %>%
+      filter(year >= 2015, year <= 2019) %>% 
+      mutate(diff = current - tot, nation = r)
+  }) %>% 
+    left_join(uk_pop, by="nation") %>% 
+    mutate(diff_pop = 1e6 * diff / population)
+}
+
+plot_uk_nation_excess <- function(x) {
+  x <- x %>% 
+    mutate(year = as_factor(year), nation = factor(nation, levels=uk_pop$nation)) %>% 
+    filter(nation != "UK")
+  ggplot(x, aes(x=nation, y=diff_pop, group=nation)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_boxplot(outlier.shape = NA, colour="grey80") +
+    geom_beeswarm() +
+    scale_y_continuous(expand=c(0,0), limits=c(0, max(x$diff_pop)*1.05)) +
+    scale_colour_viridis_d() +
+    labs(x=NULL, y="2020 excess deaths per million vs 2015-2019")
+}
+
+
+make_eu <- function(cvd) {
+  cvd_eu <- cvd %>%
+    filter(id %in% EU) %>%
+    group_by(date) %>%
+    summarise(
+      cases = sum(cases),
+      deaths = sum(deaths),
+      new_cases = sum(new_cases),
+      new_deaths = sum(new_deaths),
+      population = sum(population)
+    ) %>%
+    mutate(
+      country = "EU",
+      cases_pop = 1e6 * cases / population,
+      deaths_pop = 1e6 * deaths / population,
+      new_cases_pop = 1e6 * new_cases / population,
+      new_deaths_pop = 1e6 * new_deaths / population
+    )
+  bind_rows(cvd, cvd_eu)
+}
+
+
+plot_staging_cumul <- function(stag) {
+  stag %>%
+    arrange(date) %>%
+    group_by(nation) %>%
+    mutate(deaths = cumsum(new_deaths), cases = cumsum(new_cases)) %>%
+    ungroup %>%
+    left_join(uk_pop, by="nation") %>%
+    mutate(`Deaths per million` = 1e6 * deaths / population, `Cases per million` = 1e6 * cases / population) %>%
+    pivot_longer(cols=c(`Deaths per million`, `Cases per million`)) %>% 
+    mutate(nation = factor(nation, levels=names(ukPalette))) %>% 
+  ggplot(aes(x=date, y=value, colour=nation)) +
+    theme_bw() +
+    geom_point(size=0.6) +
+    scale_colour_manual(values=ukPalette) +
+    facet_wrap(~name, scales="free_y") +
+    labs(x=NULL, y="", colour=NULL)
+}
+
+plot_staging_hospitals <- function(stag) {
+  s <- stag %>%
+    left_join(uk_pop, by="nation") %>%
+    pivot_longer(c(new_admissions, hospital_cases, mv_beds)) %>%
+    mutate(
+      name = recode(name,
+                    "new_admissions" = "New admissions",
+                    "hospital_cases" = "Patients in hospital",
+                    "mv_beds" = "Patients on ventillators"
+      ),
+      value = 1e6*value/population,
+      nation = factor(nation, levels=names(ukPalette))
+  )
+  map(unique(s$name), function(nm) {
+    s %>% filter(name == nm) %>% 
+    ggplot(aes(x=date, y=value, colour=nation)) +
+      theme_bw() +
+      theme(panel.grid = element_blank()) +
+      geom_point(size=0.7) +
+      #facet_wrap(~nation, scales="fixed", ncol=4) +
+      scale_colour_manual(values=ukPalette) +
+      labs(x=NULL, y="Counts per million", colour=NULL, title=nm)
+  }) %>% 
+    plot_grid(plotlist = ., ncol=1)
+}
+
+
+plot_global <- function(cvd, span=0.3) {
+  cvd %>% 
+    group_by(date) %>% 
+    summarise(`Daily cases` = sum(new_cases), `Daily deaths` = sum(new_deaths)) %>%
+    pivot_longer(cols=c(`Daily cases`, `Daily deaths`)) %>% 
+  ggplot(aes(x=date, y=value)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank()
+    ) +
+    geom_point(size=0.6) +
+    geom_line(stat="smooth", method="loess", span=span, se=FALSE, alpha=0.5, colour=cbPalette[3], size=1) +
+    facet_wrap(~name, scale="free_y") +
+    labs(x=NULL, y="Count") +
+    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'))
+}
+
+plot_eu_uk_us <- function(cvd) {
+  d <- cvd %>% 
+    make_eu() %>% 
+    filter(country %in% c("EU", "United Kingdom", "United States") & date>as.Date("2020-03-01") & new_cases_pop >= 0)
+  ggplot(d, aes(x=date, y=new_cases_pop, colour=country, fill=country)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    geom_point(alpha=0.2) +
+    geom_smooth(method="loess", span=0.3) +
+    scale_color_manual(values=cbPalette) +
+    scale_fill_manual(values=cbPalette) +
+    labs(x=NULL, y="Daily cases per million", fill=NULL, colour=NULL) +
+    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$new_cases_pop)*1.03))
 }

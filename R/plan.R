@@ -1,4 +1,4 @@
-read_data <- drake_plan(
+ecdc_data <- drake_plan(
   url_covid = get_url_ecdc(),
   covid_raw = read_covid(url_covid),
   covid = process_covid(covid_raw, gdp),
@@ -9,34 +9,20 @@ read_data <- drake_plan(
 )
 
 plots <- drake_plan(
-  #fig_cases = basic_plot(covid_sel),
-  #fig_deaths = basic_plot(covid_sel %>% filter(deaths>0), y="deaths"),
-  #fig_cases_pop = basic_plot(covid_sel, y="cases_pop"),
-  #fig_deaths_pop = basic_plot(covid_sel %>% filter(deaths>0), y="deaths_pop"),
-  #fig_shifted_cases = plot_shifted(covid_sel, what="cases"),
-  #fig_shifted_deaths = plot_shifted(covid_sel, what="deaths", val.min=10),
   fig_shifted_cases_pop = plot_shifted(covid_sel, what="cases_pop", val.min=1, val.max=20),
   fig_shifted_deaths_pop = plot_shifted(covid_sel, what="deaths_pop", val.min=0.2, val.max=5),
-  #fig_doubling_cases = plot_doubling_times(covid_sel, what="cases", val.min=100),
-  #fig_doubling_deaths = plot_doubling_times(covid, what="deaths", val.min=10),
-  #fig_uk = plot_country(covid, cntry="United Kingdom"),
-  #fig_us = plot_country(covid, cntry="United States"),
   fig_new_cases = plot_daily_cases(covid, what="new_cases", ncol=8),
   fig_new_deaths = plot_daily_cases(covid, what="new_deaths", ncol=8, val.min = 1),
-  #fig_italy_fit = plot_country_fit(covid, "Italy", val.max=2000),
-  #fig_spain_fit = plot_country_fit(covid, "Spain", val.max=1000),
-  #fig_diff_italy = plot_derivative(covid, cntry="Italy"),
-  #fig_diff_uk = plot_derivative(covid, cntry="United Kingdom"),
   fig_ratio = plot_death_ratio(covid, mortality=NULL),
   fig_cases_deaths = plot_cases_diff_deaths(covid),
   fig_cases_deaths_pop = plot_cases_diff_deaths(covid, pop=TRUE),
   fig_cases_deaths_both = plot_grid(fig_cases_deaths, fig_cases_deaths_pop, nrow=1),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
-  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.4),
-  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.4, scls="fixed", ymax=30),
-  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.4),
-  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.4, scls="fixed", ymax=200),
+  fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.3),
+  fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.3, scls="fixed", ymax=30),
+  fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.3),
+  fig_daily_cases_fixed = plot_daily(covid, countries_day, what="cases", span=0.3, scls="fixed", ymax=200),
   fig_shift_cases = plot_shifts(covid, countries_day),
   
   fig_daily_deaths_2 = plot_daily(covid, countries_2, what="deaths", span=0.3, cut.day=0),
@@ -45,8 +31,8 @@ plots <- drake_plan(
   fig_daily_deaths_3 = plot_daily(covid, countries_3, what="deaths", span=0.3, cut.day=0),
   fig_daily_cases_3 = plot_daily(covid, countries_3, what="cases", span=0.3, cut.day=0),
   
-  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.4),
-  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.4),
+  fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.3),
+  fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.3),
   
   fig_recent_daily_deaths = plot_recent_daily(covid, what="new_deaths_pop", n=7, top.n=10),
   fig_recent_daily_cases = plot_recent_daily(covid, what="new_cases_pop", n=7, top.n=10),
@@ -72,7 +58,10 @@ plots <- drake_plan(
   fig_heatmap_cases = plot_smooth_heatmap(covid, what="cases", min.val=1000, brks=c(0,10,20,50,100,200,500)),
   
   fig_continents_cases = plot_continents(covid, "new_cases", brks=seq(0, 1e6, 50000)),
-  fig_continents_deaths = plot_continents(covid, "new_deaths", brks=seq(0, 1e5, 1000))
+  fig_continents_deaths = plot_continents(covid, "new_deaths", brks=seq(0, 1e5, 1000)),
+  
+  fig_global = plot_global(covid, span=0.3),
+  fig_eu_uk_us = plot_eu_uk_us(covid)
 )
 
 figs <- plots %>% 
@@ -96,11 +85,6 @@ save_figures <- drake_plan(
   )
 )
 
-ons_figures <- drake_plan(
-  fig_ons_deaths = plot_ons_deaths(ons, max(ons$week)),
-  ggsave("fig/ons_deaths.png", fig_ons_deaths, device="png", width=6, height=3)
-)
-
 animations <-  drake_plan(
   anim_cases_deaths = plot_cases_deaths_anim(covid),
   save_cases_deaths = anim_save("anim_cases_deaths.gif", animation=anim_cases_deaths, path="fig")
@@ -111,10 +95,10 @@ testing <- drake_plan(
   url_testing = get_url_testing(),
   testing_data = read_testing(url_testing),
   
-  fig_testing_people = plot_testing(testing_data, "people_tested"),
+  #fig_testing_people = plot_testing(testing_data, "tests_processed"),
   fig_testing_positives = plot_testing(testing_data, "positives"),
   
-  save_fig_testing_people = ggsave("fig/testing_people.png", fig_testing_people, device="png", width=7, height=3),
+  #save_fig_testing_people = ggsave("fig/testing_people.png", fig_testing_people, device="png", width=7, height=3),
   save_fig_testing_positives = ggsave("fig/testing_positives.png", fig_testing_positives, device="png", width=7, height=3)
 )
 
@@ -133,14 +117,27 @@ excess <- drake_plan(
   exc_deaths_2015 = excess_deaths(exc, "UK", year1=2015),
   last_week_uk = last_week(exc, "UK"),
   last_date_uk = last_date(exc, "UK"),
+  uk_exc_nations = UK_nation_excess(exc),
+  fig_exc_uk_nations = plot_uk_nation_excess(uk_exc_nations),
   
   save_fig_exc_countries = annotate_save("fig/exc_countries.png", fig_exc_countries, url_excess, width=10, height=8),
   save_fig_exc_uk = annotate_save("fig/exc_uk.png", fig_exc_uk, url_excess, width=10, height=8),
   save_fig_exc_deaths_uk = annotate_save("fig/exc_uk_deaths.png", fig_excess_deaths_uk, url_excess, width=6, height=4),
   save_fig_excess_weekly_deaths_uk = annotate_save("fig/exc_uk_weekly_deaths.png", fig_excess_weekly_deaths_uk, url_excess, width=8, height=4),
   #save_fig_exc_prop_countries = annotate_save("fig/exc_prop_countries.png", fig_exc_prop_countries, url_excess, width=10, height=8),
-  save_fig_exc_prop_uk = annotate_save("fig/exc_prop_uk.png", fig_exc_prop_uk, url_excess, width=10, height=8)
+  save_fig_exc_prop_uk = annotate_save("fig/exc_prop_uk.png", fig_exc_prop_uk, url_excess, width=10, height=8),
+  save_fig_exc_uk_nations = annotate_save("fig/exc_uk_nations.png", fig_exc_uk_nations, url_excess, width=6, height=4)
 )
+
+staging <- drake_plan(
+  stag = read_staging_data(),
+  fig_stag_cumul = plot_staging_cumul(stag),
+  fig_stag_hospital = plot_staging_hospitals(stag),
+  
+  save_fig_stag_cumul = annotate_save("fig/stag_cumul.png", fig_stag_cumul, "https://coronavirus-staging.data.gov.uk", width=8, height=4),
+  save_fig_stag_hospital = annotate_save("fig/stag_hospital.png", fig_stag_hospital, "https://coronavirus-staging.data.gov.uk", width=7, height=6)
+)
+
 
 knit_report <- drake_plan(
   report = rmarkdown::render(
@@ -151,11 +148,11 @@ knit_report <- drake_plan(
 )
 
 plan <- bind_rows(
-  read_data,
+  ecdc_data,
   plots,
   save_figures,
   testing,
   excess,
+  staging,
   knit_report
-  #animations
 )

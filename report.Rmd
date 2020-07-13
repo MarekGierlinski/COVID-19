@@ -95,8 +95,11 @@ readd(fig_daily_deaths_3)
 
 Another representation of the same data. Cases and deaths (per million) for countries with at least 1000 cases per million and at least 50 deaths per million, respectively. Plots show smooth data (the same loess smoothing as above), ordered by the centre of gravity of each time course.
 
-```{r heatmaps, fig.width=6, fig.height=5}
+```{r heatmaps_cases, fig.width=6, fig.height=7}
 readd(fig_heatmap_cases)
+```
+
+```{r heatmaps_deaths, fig.width=6, fig.height=5}
 readd(fig_heatmap_deaths)
 ```
 
@@ -110,6 +113,19 @@ readd(fig_recent_daily_deaths)
 ```
 
 # Global overview
+
+## Global timeline
+
+```{r global_timeline, fig.width=8, fig.height=4}
+readd(fig_global)
+```
+
+## EU, UK and USA comparison
+
+```{r eu_uk_us, fig.width=6, fig.height=4}
+readd(fig_eu_uk_us)
+```
+
 
 ## Deaths and cases
 
@@ -172,9 +188,25 @@ These data contain time series of COVID-19 testing in all four nations of the UK
 
 The UK testing data includes number of people tested under Pillar 1 and number of positives. These figures are consistent between three nations and can be compared (though they don't include positives outside labs/hospitals).
 
-```{r fig_testing, fig.width=8, fig.height=3, message=FALSE, warning=FALSE}
-readd(fig_testing_people)
+```{r fig_testing, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
+#readd(fig_testing_people)
 readd(fig_testing_positives)
+```
+
+# UK government hospital data
+
+This data comes from [Coronavirus staging](https://coronavirus-staging.data.gov.uk/) resource. The website provides more details on [how data were collected](https://coronavirus-staging.data.gov.uk/about-data). Here we simply combine some of their data sets into figures.
+
+## Cumlative cases and deaths in the UK
+
+```{r fig_stage_cumulative, fig.width=8, fig.height=4}
+readd(fig_stag_cumul)
+```
+
+## Hospital admissions, current patients and patients on ventillators
+
+```{r fig_stage_hosp, fig.width=6, fig.height=8}
+readd(fig_stag_hospital)
 ```
 
 
@@ -230,4 +262,12 @@ There is not only a lot of year-to-year variability, but also a strange step-wis
 Errors are 95% confidence intervals. However, if we take all years 2010-2019 as baseline, we find  `r N(exc_deaths_2010$diff)`±`r N(exc_deaths_2010$ci)` excess deaths.
 
 WARNING: do not trust excess deaths numbers in media and social media until they quote them with confidence intervals and clearly state what baseline they used.
+
+## Excess deaths for UK nations
+
+Using the method described above we found the excess deaths (normalised to population) for four UK nations. Points in this figure shows the difference between 2020 deaths (weeks 1-`r readd(last_week_uk)`) and the 2015-2019 deaths.
+
+```{r uk_nations_excess, fig.width=6, fig.height=4}
+readd(fig_exc_uk_nations)
+```
 
