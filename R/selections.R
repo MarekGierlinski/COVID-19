@@ -17,24 +17,28 @@ countries_day <- c(
 )
 countries_2 <- c(
   "Argentina",
-  "Armenia",
-  "Brazil",
-  "Chile",
   "Colombia",
-  "Mexico",
-  "Egypt",
   "India",
-  "Bangladesh",
   "South Africa",
   "Bolivia",
-  "Guatemala"
+  "Guatemala",
+  "Iraq",
+  "Kenya",
+  "Kazakhstan",
+  "Uzbekistan",
+  "Oman",
+  "Costa Rica"
+  
 )
 
 countries_3 <- c(
   "Israel",
+  "Japan",
   "Iran",
   "North Macedonia",
   "Serbia",
+  "Luxembourg",
+  "Switzerland",
   "Portugal",
   "South Korea",
   "United States",

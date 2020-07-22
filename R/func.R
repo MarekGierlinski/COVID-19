@@ -202,7 +202,7 @@ basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=c
   if(logy) {
     g <- g + scale_y_log10(breaks=brks, labels=labs)
   } else {
-    g <- g + scale_y_continuous(expand=c(0,0), limits=c(0, max(d[[y]])*1.03))
+    g <- g + scale_y_continuous(expand=expansion(mult = c(0, 0.1)))
   }
   g
 }
@@ -418,7 +418,7 @@ plot_death_ratio <- function(cvd, text.size=8, mortality=NULL, min.cases=100, mi
     geom_errorbar(width=0.3) +
     geom_point() +
     coord_flip() +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$conf.high) * 1.03)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
     labs(x=NULL, y="Reported deaths / reported cases")
   if(!is.null(mortality)) g <- g + geom_hline(yintercept = mortality, colour="red", linetype="dashed")
   g
@@ -589,7 +589,7 @@ make_country_fits_ <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=
 make_country_fits <- function(d, cntrs, n.iter=3, span=0.75, step=0.5, cut.day=3) {
   d %>% group_split(country) %>% 
     map_dfr(function(w) {
-      w[w$y == 0, "y"] <- NA
+      w[w$y < 0, "y"] <- NA
       fit <- fit_loess_outliers(w, n.iter, span)
       x <- seq(min(w$day), max(w$day), step)
       f <- predict(fit, data.frame(day=x), se=TRUE)
@@ -625,7 +625,7 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
     geom_line()  +
     scale_color_manual(values=cbPalette) +
     scale_fill_manual(values=cbPalette) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(s$y, na.rm=TRUE)*1.05)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
     labs(x="Relative day", y=glue("Daily {what} per million")) +
     geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
     geom_text_repel(data=p, aes(x=x, y=y, label=country), size=2, nudge_x=0, min.segment.length = 0.5, hjust=0.5, segment.alpha = 0.3)
@@ -740,7 +740,7 @@ plot_death_excess <- function(cvd, cntry="United Kingdom", base_country="South K
     theme(panel.grid.minor = element_blank()) +
     geom_segment(aes(xend=days, yend=0), colour="grey80") +
     geom_point() +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(cvd_pred$deaths_ex)*1.05)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
     scale_x_continuous(limits = xlims) +
     labs(x="Relative day", y=glue("Excess deaths in {cntry_short}"))
   
@@ -759,7 +759,7 @@ plot_ons_deaths <- function(ons, wk) {
     geom_col(position="identity") +
     labs(x="Age group", y="Deaths", title=glue("Week {wk}")) +
     scale_fill_manual(values=cbPalette[2:3]) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$deaths)*1.05))
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1)))
 }
 
 plot_deaths_gdppop <- function(cvd, what="pop") {
@@ -849,7 +849,7 @@ plot_week_days <- function(cvd, cntrs, what="deaths") {
     geom_col(fill="grey70", colour="grey30", width=0.8, size=0.3) +
     facet_wrap(~ country) +
     scale_x_discrete(labels=c("M", "T", "W", "T", "F", "S", "S")) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$prop)*1.05)) +
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     labs(x=NULL, y=glue("Proportion of reported {what}")) +
     geom_hline(yintercept = 1/7, colour="red", linetype="dashed", alpha=0.5)
 }
@@ -975,7 +975,7 @@ plot_recent_daily_ <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, t
     geom_point(aes(y = M)) +
     coord_flip() +
     labs(y = glue("Reported {s} per million per day (mean and 95% CI over last {n} days)"), x=NULL) +
-    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$M_up) * 1.05))
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 }
 
 plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
@@ -1017,7 +1017,7 @@ plot_testing <- function(d, what="positives") {
     geom_point() +
     geom_smooth(method="loess", span=0.5, size=0.9, alpha=0.8, colour=cbPalette[3], se=FALSE) +
     facet_wrap(~nation, ncol=3) +
-    scale_y_continuous(expand=c(0,0), limits=c(0,mx)) +
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     labs(x=NULL, y=NULL, title=glue("Daily {what} per million") %>% str_replace("_", " "))
 }
 
@@ -1100,7 +1100,7 @@ plot_excess_prop <- function(x, ctry=NULL, by.region=FALSE, ncol=1, y.scale=3) {
     scale_colour_manual(values=c("black", "red"))+
     facet_wrap(~ group, ncol=ncol, scales = "fixed") +
     scale_x_continuous(breaks=c(1,5,10,15,20,25,30,35,40,45,50)) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, ymx)) +
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     labs(x="Week", y="Excess deaths ratio")
 }
 
@@ -1141,7 +1141,7 @@ plot_exc_total_deaths <- function(x, ctry="UK") {
     theme_bw() +
     geom_col() +
     scale_x_continuous(breaks=seq(2010,2020,2)) +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(d$tot/1000)*1.05)) +
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     labs(x="Year", y=glue("Deaths (thousands) weeks 1-{week.end}"))
 }
 
@@ -1208,7 +1208,7 @@ plot_uk_nation_excess <- function(x) {
     theme(panel.grid = element_blank()) +
     geom_boxplot(outlier.shape = NA, colour="grey80") +
     geom_beeswarm() +
-    scale_y_continuous(expand=c(0,0), limits=c(0, max(x$diff_pop)*1.05)) +
+    scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     scale_colour_viridis_d() +
     labs(x=NULL, y="2020 excess deaths per million vs 2015-2019")
 }
@@ -1310,5 +1310,25 @@ plot_eu_uk_us <- function(cvd) {
     scale_color_manual(values=cbPalette) +
     scale_fill_manual(values=cbPalette) +
     labs(x=NULL, y="Daily cases per million", fill=NULL, colour=NULL) +
-    scale_y_continuous(expand = c(0,0), limits=c(0, max(d$new_cases_pop)*1.03))
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+}
+
+
+plot_scotland_context <- function(cvd, scot_deaths) {
+  d <- cvd %>%
+    filter(population>1e6) %>%
+    group_by(country) %>%
+    summarise(v = sum(new_deaths_pop)) %>%
+    add_row(country="Scotland", v=scot_deaths / 5.438100) %>%
+    arrange(-v) %>%
+    mutate(country=as_factor(country) %>%fct_rev()) %>%
+    head(31) %>%
+    mutate(is.scotland = country == "Scotland")
+  ggplot(d, aes(x=v, y=country, fill=is.scotland)) +
+    geom_col() +
+    scale_x_continuous(expand=expansion(mult = c(0, 0.1))) +
+    theme_bw() +
+    scale_fill_manual(values=c("grey30", "#0065BF")) +
+    theme(legend.position = "none", panel.grid = element_blank()) +
+    labs(x="Deaths per million", y=NULL)
 }

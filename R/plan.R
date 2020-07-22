@@ -61,7 +61,10 @@ plots <- drake_plan(
   fig_continents_deaths = plot_continents(covid, "new_deaths", brks=seq(0, 1e5, 1000)),
   
   fig_global = plot_global(covid, span=0.3),
-  fig_eu_uk_us = plot_eu_uk_us(covid)
+  fig_eu_uk_us = plot_eu_uk_us(covid),
+  
+  fig_scotland = plot_scotland_context(covid, 2491),
+  fig_scotland_similar = plot_scotland_context(covid %>% filter(population>2e6 & population<10e6 & gdp> 10000), 2491)
 )
 
 figs <- plots %>% 
@@ -76,7 +79,8 @@ figs <- plots %>%
   mutate(height = if_else(str_detect(name, "excess"), 6, height)) %>% 
   mutate(height = if_else(str_detect(name, "ratio"), 8, height)) %>%
   mutate(height = if_else(str_detect(name, "new"), 10, height)) %>% 
-  mutate(height = if_else(str_detect(name, "heatmap"), 6, height))
+  mutate(height = if_else(str_detect(name, "heatmap"), 6, height)) %>% 
+  mutate(height = if_else(str_detect(name, "scotland"), 6, height))
 
 save_figures <- drake_plan(
   figures = target(
@@ -107,7 +111,7 @@ excess <- drake_plan(
   exc = read_excess(url_excess),
   print_exc_date = print(paste("Last date in excess file:", exc %>% drop_na() %>%  pull(date) %>% max())),
   
-  fig_exc_countries = plot_excess_details(exc, ncol=4, y.scale=2.9),
+  fig_exc_countries = plot_excess_details(exc, ncol=4, y.scale=3.6),
   fig_exc_uk = plot_excess_details(exc, "UK", by.region=TRUE, ncol=4, y.scale=4),
   #fig_exc_prop_countries = plot_excess_prop(exc, ncol=3),
   fig_exc_prop_uk = plot_excess_prop(exc, "UK", by.region=TRUE, ncol=4),
