@@ -60,7 +60,8 @@ plots <- drake_plan(
   fig_continents_cases = plot_continents(covid, "new_cases", brks=seq(0, 1e6, 50000)),
   fig_continents_deaths = plot_continents(covid, "new_deaths", brks=seq(0, 1e5, 1000)),
   
-  fig_global = plot_global(covid, span=0.3),
+  fig_global = plot_global(covid, span=0.2),
+  fig_global_weekly = plot_global_weekly(covid),
   fig_eu_uk_us = plot_eu_uk_us(covid),
   
   fig_scotland = plot_scotland_context(covid, 2491),

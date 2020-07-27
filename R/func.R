@@ -794,7 +794,7 @@ g_cases_deaths <- function(d, repel=FALSE, min.deaths=0) {
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
     #geom_abline(slope=1, intercept=log10(c(0.01, 0.05, 0.1, 0.2)), colour="red", alpha=0.1) +
-    scale_x_log10(breaks=brks, labels=labs, limits=c(50,4e6)) +
+    scale_x_log10(breaks=brks, labels=labs) +
     scale_y_log10(breaks=brks, labels=labs) +
     labs(x="Reported cases", y="Reported deaths", colour="Population") +
     scale_colour_viridis_c(labels=scales::trans_format('log10', scales::math_format(10^.x)), breaks=brks, trans="log10")
@@ -811,7 +811,8 @@ g_cases_deaths <- function(d, repel=FALSE, min.deaths=0) {
 plot_cases_deaths <- function(cvd, min.deaths=1000) {
   cvd %>%
     group_by(country) %>% 
-    summarise(deaths = max(deaths), cases = max(cases), population = first(population)) %>% 
+    summarise(deaths = max(deaths, na.rm=TRUE), cases = max(cases, na.rm=TRUE), population = first(population)) %>% 
+    filter(deaths > 0 & cases > 0) %>%  
     g_cases_deaths(repel=TRUE, min.deaths) +
     theme(panel.grid = element_blank())
 }
@@ -1291,11 +1292,33 @@ plot_global <- function(cvd, span=0.3) {
     theme(
       panel.grid.minor = element_blank()
     ) +
-    geom_point(size=0.6) +
-    geom_line(stat="smooth", method="loess", span=span, se=FALSE, alpha=0.5, colour=cbPalette[3], size=1) +
-    facet_wrap(~name, scale="free_y") +
+    #geom_point(size=0.6) +
+    geom_col(width=1, fill="grey50") +
+    geom_line(stat="smooth", method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3], size=1) +
+    facet_wrap(~name, scale="free_y", ncol=1) +
     labs(x=NULL, y="Count") +
-    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'))
+    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)))
+}
+
+plot_global_weekly <- function(cvd) {
+  cvd %>%
+    filter(date > as.Date("2020-01-01")) %>% 
+    group_by(date) %>% 
+    summarise(cases = sum(new_cases), deaths = sum(new_deaths)) %>%
+    pivot_longer(cols=c(cases, deaths)) %>%  
+    mutate(week = lubridate::week(date)) %>%
+    group_by(week, name) %>%
+    summarise(count = sum(value), n = n()) %>%
+    mutate(count_ext = 7 * count/n) %>%
+    mutate(name = recode(name, "cases" = "Weekly cases", "deaths" = "Weekly deaths")) %>% 
+  ggplot(aes(x=week, y=count_ext, fill = n==7)) +
+    theme_bw() +
+    theme(legend.position = "none") +
+    geom_col(width=1) +
+    facet_wrap(~name, scales="free_y", ncol=1) +
+    scale_fill_manual(values = c("grey80", "grey30")) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1)), label = scales::comma) +
+    labs(x="Week of 2020", y=NULL)
 }
 
 plot_eu_uk_us <- function(cvd) {

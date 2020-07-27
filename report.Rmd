@@ -120,6 +120,12 @@ readd(fig_recent_daily_deaths)
 readd(fig_global)
 ```
 
+The same data in weekly sums, the light grey bar indicates not a full week, weekly number extrapolated.
+
+```{r global_timeline_weekly, fig.width=6, fig.height=5}
+readd(fig_global_weekly)
+```
+
 ## EU, UK and USA comparison
 
 ```{r eu_uk_us, fig.width=6, fig.height=4}
@@ -197,7 +203,7 @@ readd(fig_testing_positives)
 
 This data comes from [Coronavirus staging](https://coronavirus-staging.data.gov.uk/) resource. The website provides more details on [how data were collected](https://coronavirus-staging.data.gov.uk/about-data). Here we simply combine some of their data sets into figures.
 
-## Cumlative cases and deaths in the UK
+## Cumulative cases and deaths in the UK
 
 ```{r fig_stage_cumulative, fig.width=8, fig.height=4}
 readd(fig_stag_cumul)
