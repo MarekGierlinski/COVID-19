@@ -48,6 +48,29 @@ countries_3 <- c(
   "Australia"
 )
 
+countries_4 <- c(
+  "Albania",
+  "Austria",
+  "Belgium",
+  "Bosnia and Herzegovina",
+  "Bulgaria",
+  "Czechia",
+  "Denmark",
+  "France",
+  "Germany",
+  "Hungary",
+  "Ireland",
+  "Italy",
+  "Spain",
+  "Switzerland",
+  "Romania",
+  "Netherlands",
+  "Serbia",
+  "United Kingdom",
+  "Luxembourg",
+  "Poland"
+)
+
 europe <- "AL-AD-AT-BY-BE-BA-BG-HR-CZ-DK-EE-FI-FR-DE-EL-HU-IS-IE-IT-XK-LV-LT-LU-MT-NL-MD-ME-NO-PL-PT-RO-SM-ES-RS-SK-SI-SE-CH-UA-TR-UK" %>% str_split("-") %>% unlist()
 
 EU <- "AT-BE-BG-HR-CY-CZ-DK-EE-FI-FR-DE-EL-HU-IE-IT-LV-LT-LU-MT-NL-PL-PT-RO-SK-SI-ES-SE" %>% str_split("-") %>% unlist()

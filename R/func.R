@@ -338,6 +338,18 @@ plot_daily_cases <- function(cvd, what="new_cases", val.min=5, point.size=0.4, t
     labs(x = NULL, y = glue::glue("New reported daily {swhat}"))
 }
 
+plot_daily_cases_selection <- function(cvd, cntrs, span=0.2) {
+  cvd %>%
+    filter(country %in% cntrs & date>=as.Date("2020-03-01")) %>%
+  ggplot(aes(x=date, y=new_cases_pop )) +
+    geom_col(width=1, fill="grey50") +
+    theme_bw() +
+    scale_y_continuous(expand=expansion(mult=c(0,0.05)), limits=c(0,NA), labels=scales::comma) +
+    theme(panel.grid  = element_blank()) +
+    geom_smooth(span=span, se=FALSE) +
+    labs(x=NULL, y="Reported daily cases per million") +
+    facet_wrap(~country, scales="free_y", ncol=4)
+}
 
 plot_derivative_1 <- function(cvd, cntry="United Kingdom",
                          what="cases", val.min=100, span=2, title="") {

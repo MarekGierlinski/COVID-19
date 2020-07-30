@@ -31,6 +31,8 @@ plots <- drake_plan(
   fig_daily_deaths_3 = plot_daily(covid, countries_3, what="deaths", span=0.3, cut.day=0),
   fig_daily_cases_3 = plot_daily(covid, countries_3, what="cases", span=0.3, cut.day=0),
   
+  fig_daily_cases_4 = plot_daily_cases_selection(covid, countries_4),
+  
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.3),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.3),
   
@@ -81,7 +83,9 @@ figs <- plots %>%
   mutate(height = if_else(str_detect(name, "ratio"), 8, height)) %>%
   mutate(height = if_else(str_detect(name, "new"), 10, height)) %>% 
   mutate(height = if_else(str_detect(name, "heatmap"), 6, height)) %>% 
-  mutate(height = if_else(str_detect(name, "scotland"), 6, height))
+  mutate(height = if_else(str_detect(name, "scotland"), 6, height)) %>% 
+  mutate(height = if_else(str_detect(name, "cases_4"), 7, height)) %>% 
+  mutate(width = if_else(str_detect(name, "cases_4"), 8, width))
 
 save_figures <- drake_plan(
   figures = target(
