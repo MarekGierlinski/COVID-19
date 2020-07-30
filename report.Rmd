@@ -120,7 +120,7 @@ readd(fig_recent_daily_deaths)
 readd(fig_global)
 ```
 
-The same data in weekly sums, the light grey bar indicates not a full week, weekly number extrapolated.
+The same data in weekly sums, light grey points indicate not a full week, with count extrapolated to the full week.
 
 ```{r global_timeline_weekly, fig.width=6, fig.height=5}
 readd(fig_global_weekly)

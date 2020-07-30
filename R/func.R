@@ -1314,7 +1314,7 @@ plot_global <- function(cvd, span=0.3) {
 
 plot_global_weekly <- function(cvd) {
   cvd %>%
-    filter(date > as.Date("2020-01-01")) %>% 
+    filter(date >= as.Date("2020-01-01")) %>% 
     group_by(date) %>% 
     summarise(cases = sum(new_cases), deaths = sum(new_deaths)) %>%
     pivot_longer(cols=c(cases, deaths)) %>%  
@@ -1323,12 +1323,14 @@ plot_global_weekly <- function(cvd) {
     summarise(count = sum(value), n = n()) %>%
     mutate(count_ext = 7 * count/n) %>%
     mutate(name = recode(name, "cases" = "Weekly cases", "deaths" = "Weekly deaths")) %>% 
-  ggplot(aes(x=week, y=count_ext, fill = n==7)) +
+  ggplot(aes(x=week, y=count_ext, colour = n==7)) +
     theme_bw() +
-    theme(legend.position = "none") +
-    geom_col(width=1) +
+    theme(legend.position = "none", panel.grid = element_blank()) +
+    geom_segment(aes(xend=week, yend=0), colour="grey70") +
+    geom_point(size=2) +
     facet_wrap(~name, scales="free_y", ncol=1) +
-    scale_fill_manual(values = c("grey80", "grey30")) +
+    scale_colour_manual(values = c("grey80", "grey30")) +
+    scale_x_continuous(breaks=c(1,seq(5,50,5))) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.1)), label = scales::comma) +
     labs(x="Week of 2020", y=NULL)
 }
