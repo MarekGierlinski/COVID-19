@@ -1,5 +1,5 @@
 shapes <- c(15:18, 0:14)
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
+okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey20", "grey40", "grey60", "grey80", "grey90", "black")
 wd <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 ukPalette <- c(
@@ -103,7 +103,7 @@ get_url_testing <- function() {
 }
 
 read_testing <- function(urlc) {
-  read_csv(urlc, col_types = cols(), na = c("NA", "Unavailable")) %>% 
+  read_csv(urlc, col_types = cols(), na = c("NA", "N/A", "Unavailable")) %>% 
     mutate(date = as.Date(`Date of activity`, format="%d/%m/%Y")) %>% 
     rename(
       nation = Nation,
@@ -177,7 +177,7 @@ process_covid <- function(cvd, gdp) {
     left_join(gdp, by="country")
 }
 
-basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=cbPalette, shps=shapes, point.size=1, shft=0, logy=TRUE) {
+basic_plot <- function(d, x="date", y="cases", xlab="Date", ylab=NULL, palette=okabe_ito_palette, shps=shapes, point.size=1, shft=0, logy=TRUE) {
   brks <- c(1, 2, 5) * 10^sort(rep(-4:6,3))
   labs <- sprintf("%f", brks) %>% str_remove("0+$") %>% str_remove("\\.$") %>% prettyNum(big.mark = ",") %>% str_remove("^\\s+")
   if(is.null(ylab)) {
@@ -543,8 +543,8 @@ plot_daily <- function(cvd, cntrs, what="cases", val.min=1, val.max=20,
     geom_blank(data=bl, aes(x=day, y=maxy)) +
     geom_segment(data=d, aes(x=day, xend=day, y=0, yend=y), colour="grey90", size=0.3) +
     geom_point(data=d, aes(x=day, y=y), size=0.2) +
-    geom_line(data=sm, aes(x=day, y=y, group=country), size=0.9, alpha=0.8, colour=cbPalette[3]) +
-    #stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3]) +
+    geom_line(data=sm, aes(x=day, y=y, group=country), size=0.9, alpha=0.8, colour=okabe_ito_palette[3]) +
+    #stat_smooth(geom="line", data=d, aes(x=day, y=y), method="loess", span=span, se=FALSE, alpha=0.8, colour=okabe_ito_palette[3]) +
     #scale_y_continuous(expand=c(0,0), limits=c(0, ymax)) +
     coord_cartesian(expand=FALSE, ylim=c(0, ymax)) +
     facet_wrap(~country, ncol=ncol, scales =scls) +
@@ -635,8 +635,8 @@ plot_daily_fits <- function(cvd, countries, what="cases", val.min=1, val.max=20,
     theme(panel.grid = element_blank(), legend.position = "none") +
     #geom_ribbon(aes(ymin=y_lo, ymax=y_up, y=NULL, fill=country), alpha=0.3, colour=NA) +
     geom_line()  +
-    scale_color_manual(values=cbPalette) +
-    scale_fill_manual(values=cbPalette) +
+    scale_color_manual(values=okabe_ito_palette) +
+    scale_fill_manual(values=okabe_ito_palette) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
     labs(x="Relative day", y=glue("Daily {what} per million")) +
     geom_point(data=p, aes(x=x, y=y, colour=country), size=1) +
@@ -695,9 +695,18 @@ plot_smooth_heatmap <- function(cvd, what="deaths", min.val=10, min.pop=1e6,
     filter(country %in% cd$country) %>% 
     mutate(country = factor(country, levels = cd$country))
   
-  df <- make_country_fits(d, cd$country, span=span) %>% 
-    mutate(date = as.Date(day, origin="1970-01-01"))
-  ggplot(df, aes(x=date, y=country, fill=y)) +
+  #df <- make_country_fits(d, cd$country, span=span) %>% 
+  #  mutate(date = as.Date(day, origin="1970-01-01"))
+  
+  df <- d %>%
+    mutate(week =  lubridate::week(date)) %>%
+    group_by(week, country) %>%
+    summarise(y = mean(y), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7) %>% 
+    droplevels()
+  
+  ggplot(df, aes(x=week_date, y=country, fill=y)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
@@ -770,7 +779,7 @@ plot_ons_deaths <- function(ons, wk) {
     theme(axis.text.x = element_text(angle=45, hjust=1)) +
     geom_col(position="identity") +
     labs(x="Age group", y="Deaths", title=glue("Week {wk}")) +
-    scale_fill_manual(values=cbPalette[2:3]) +
+    scale_fill_manual(values=okabe_ito_palette[2:3]) +
     scale_y_continuous(expand=expansion(mult = c(0, 0.1)))
 }
 
@@ -881,7 +890,7 @@ plot_week_days_total <- function(cvd) {
   ggplot(data=d, aes(x=day_of_week, y=p)) + 
     theme_bw() +
     theme(panel.grid = element_blank()) +
-    geom_boxplot(outlier.shape = NA, fill=cbPalette[3], alpha=0.3) +
+    geom_boxplot(outlier.shape = NA, fill=okabe_ito_palette[3], alpha=0.3) +
     geom_beeswarm(cex=1, size=1, colour="grey50") +
     labs(x=NULL, y="Proportion of deaths")
 }
@@ -964,7 +973,7 @@ plot_england_scotland <- function() {
   ggplot(d, aes(x=date, y=cumdeaths_pop, colour=country)) +
     theme_bw() +
     geom_line() +
-    geom_point() +scale_colour_manual(values=cbPalette) 
+    geom_point() +scale_colour_manual(values=okabe_ito_palette) 
     #scale_y_log10()
 }
 
@@ -991,7 +1000,7 @@ plot_recent_daily_ <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, t
     scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 }
 
-plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=30) {
+plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, top.n=10) {
   s <- what %>% str_remove("new_") %>% str_remove("_pop")
   d <- cvd %>%
     filter(date > max(date) - n & population >= min.pop) %>% 
@@ -1003,19 +1012,23 @@ plot_recent_daily <- function(cvd, what="new_deaths_pop", n=7, min.pop = 1e6, to
     arrange(-M) %>%
     head(top.n)
   ct <- md$country %>% as_factor()
+  md <- md %>%
+    left_join(d, by="country") %>% 
+    mutate(country = factor(country, levels = ct) %>% fct_rev())
+    
+  mx <- max(md$val) * 1.05
   
   md %>% 
-    left_join(d, by="country") %>% 
-    mutate(country = factor(country, levels = ct) %>% fct_rev()) %>% 
-  ggplot(aes(x=country, y=val, fill=as.character(date))) +
+  ggplot(aes(x=country, y=val)) +
     theme_bw() +
-    theme(panel.grid = element_blank()) +
-    geom_boxplot(outlier.shape = NA, colour="grey70", fill=NA) +
-    geom_beeswarm(shape=21, cex=1.5) +
+    theme(panel.grid = element_blank(), panel.grid.major.y = element_line(colour="grey90", size=0.5)) +
+    geom_errorbar(data=md, aes(x=country, y=M, ymin=M, ymax=M), colour="grey60", width=0.9, size=1.5) +
+    geom_beeswarm(aes(fill=as.character(date)), shape=21, cex=1.5) +
     coord_flip() +
     labs(y = glue("Reported {s} per million per day (last {n} days)"), x=NULL, fill="Date") +
-    scale_fill_viridis_d()
-}
+    scale_fill_viridis_d() +
+    scale_y_continuous(expand=c(0,0), limits=c(0,mx))
+  }
 
 
 plot_testing <- function(d, what="positives") {
@@ -1028,7 +1041,7 @@ plot_testing <- function(d, what="positives") {
     theme(panel.grid = element_blank()) +
     geom_segment(aes(xend=date, yend=0), colour="grey80") +
     geom_point() +
-    geom_smooth(method="loess", span=0.5, size=0.9, alpha=0.8, colour=cbPalette[3], se=FALSE) +
+    geom_smooth(method="loess", span=0.5, size=0.9, alpha=0.8, colour=okabe_ito_palette[3], se=FALSE) +
     facet_wrap(~nation, ncol=3) +
     scale_y_continuous(expand=expansion(mult = c(0, 0.1))) +
     labs(x=NULL, y=NULL, title=glue("Daily {what} per million") %>% str_replace("_", " "))
@@ -1070,7 +1083,7 @@ plot_excess_details <- function(d, ctry=NULL, by.region=FALSE, ncol=1, y.scale=3
     geom_beeswarm(data=bkg, aes(x=week, y=deaths), colour="grey70", size=0.5, cex=0.6) +
     #geom_step(data=fg, aes(x=week-0.5, y=deaths), size=0.7) +
     geom_line(data=fg, aes(x=week, y=deaths), colour="grey90") +
-    geom_point(data=fg, aes(x=week, y=deaths), size=1.5, shape=22, fill=cbPalette[3]) +
+    geom_point(data=fg, aes(x=week, y=deaths), size=1.5, shape=22, fill=okabe_ito_palette[3]) +
     facet_wrap(~ group, ncol=ncol, scales = "free_y") +
     scale_x_continuous(breaks=c(1,10,20,30,40,50), limits=c(0, xmx)) +
     scale_y_continuous(expand=c(0,0)) +
@@ -1294,45 +1307,94 @@ plot_staging_hospitals <- function(stag) {
 }
 
 
-plot_global <- function(cvd, span=0.3) {
-  cvd %>% 
+plot_global <- function(cvd) {
+  d <- cvd %>%
+    filter(date >= as.Date("2020-01-01")) %>% 
     group_by(date) %>% 
-    summarise(`Daily cases` = sum(new_cases), `Daily deaths` = sum(new_deaths)) %>%
-    pivot_longer(cols=c(`Daily cases`, `Daily deaths`)) %>% 
-  ggplot(aes(x=date, y=value)) +
+    summarise(cases = sum(new_cases), deaths = sum(new_deaths)) %>% 
+    pivot_longer(cols=c(cases, deaths)) %>% 
+    mutate(name = recode(name, cases = "Reported new cases", deaths = "Reported new deaths"))
+  w <- d %>%
+    mutate(week = lubridate::week(date)) %>%
+    group_by(week, name) %>%
+    summarise(count = mean(value), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7)
+  # add one more point in cases and deaths for nice line ending
+  ww <- w %>% 
+    group_split(name) %>% 
+    map_dfr(function(x) {
+      x %>% 
+        add_row(week=last(x$week)+1, name=first(x$name), count=last(x$count), week_date=last(x$week_date)+7)
+    })
+
+  ggplot(d, aes(x=date, y=value)) +
     theme_bw() +
     theme(
       panel.grid.minor = element_blank()
     ) +
     #geom_point(size=0.6) +
-    geom_col(width=1, fill="grey50") +
-    geom_line(stat="smooth", method="loess", span=span, se=FALSE, alpha=0.8, colour=cbPalette[3], size=1) +
+    geom_col(width=1, fill="grey60") +
+    geom_step(data=ww, aes(x=week_date, y=count), alpha=0.8, colour="black", size=1) +
     facet_wrap(~name, scale="free_y", ncol=1) +
     labs(x=NULL, y="Count") +
-    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)))
+    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)), limits=c(0, NA)) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%b")
 }
 
-plot_global_weekly <- function(cvd) {
-  cvd %>%
-    filter(date >= as.Date("2020-01-01")) %>% 
-    group_by(date) %>% 
-    summarise(cases = sum(new_cases), deaths = sum(new_deaths)) %>%
-    pivot_longer(cols=c(cases, deaths)) %>%  
+plot_countries_weekly <- function(cvd, countries, what="cases") {
+  d <- cvd %>%
+    mutate(value = !!sym(glue("new_{what}_pop"))) %>% 
+    filter(country %in% countries & date >= as.Date("2020-02-15"))
+  w <- d %>%
     mutate(week = lubridate::week(date)) %>%
-    group_by(week, name) %>%
-    summarise(count = sum(value), n = n()) %>%
-    mutate(count_ext = 7 * count/n) %>%
-    mutate(name = recode(name, "cases" = "Weekly cases", "deaths" = "Weekly deaths")) %>% 
-  ggplot(aes(x=week, y=count_ext, colour = n==7)) +
+    group_by(country, week) %>%
+    summarise(value = mean(value), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7)
+  # add one more point in cases and deaths for nice line ending
+  ww <- w %>% 
+    group_split(country) %>% 
+    map_dfr(function(x) {
+      x %>% 
+        add_row(week=last(x$week)+1,  value=last(x$value), week_date=last(x$week_date)+7, country=first(x$country))
+    })
+  
+  ggplot(d, aes(x=date, y=value)) +
     theme_bw() +
-    theme(legend.position = "none", panel.grid = element_blank()) +
-    geom_segment(aes(xend=week, yend=0), colour="grey70") +
-    geom_point(size=2) +
-    facet_wrap(~name, scales="free_y", ncol=1) +
-    scale_colour_manual(values = c("grey80", "grey30")) +
-    scale_x_continuous(breaks=c(1,seq(5,50,5))) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.1)), label = scales::comma) +
-    labs(x="Week of 2020", y=NULL)
+    theme(
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(size=0.2, colour="grey90")
+    ) +
+    #geom_point(size=0.6) +
+    geom_col(width=1, fill="grey70") +
+    geom_step(data=ww, aes(x=week_date, y=value), alpha=0.8, colour="black", size=1) +
+    facet_wrap(~country, scale="free_y") +
+    labs(x=NULL, y=glue("Daily {what} per million")) +
+    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)), limits=c(0, NA)) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%b")
+}
+
+
+plot_hysteresis <- function(cvd, countries) {
+  cvd %>%
+    filter(country %in% countries & date >= as.Date("2020-02-15")) %>%
+    mutate(week = lubridate::week(date)) %>%
+    group_by(country, week) %>%
+    summarise(cases = sum(new_cases_pop), deaths = sum(new_deaths_pop), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7) %>%
+  ggplot(aes(x=cases, y=deaths, group=country, colour=week_date)) +
+    theme_bw() +
+    theme(panel.grid = element_blank(), text=element_text(size=8)) +
+    geom_path() +
+    geom_point(size=0.5) +
+    facet_wrap(~country, scales="free") +
+    #scale_colour_viridis_c(trans="date", option="cividis") +
+    scale_colour_distiller(palette="RdYlBu", trans="date") +
+    scale_x_continuous(expand = expansion(mult = c(0.02, 0.05)), limits=c(0, NA)) +
+    scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits=c(0, NA)) +
+    labs(x="Weekly cases per million", y = "Weekly deaths per million", colour="Date")
 }
 
 plot_eu_uk_us <- function(cvd) {
@@ -1344,8 +1406,8 @@ plot_eu_uk_us <- function(cvd) {
     theme(panel.grid.minor = element_blank()) +
     geom_point(alpha=0.2) +
     geom_smooth(method="loess", span=0.3) +
-    scale_color_manual(values=cbPalette) +
-    scale_fill_manual(values=cbPalette) +
+    scale_color_manual(values=okabe_ito_palette) +
+    scale_fill_manual(values=okabe_ito_palette) +
     labs(x=NULL, y="Daily cases per million", fill=NULL, colour=NULL) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
 }

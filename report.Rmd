@@ -46,7 +46,7 @@ Most of the plots show data normalised to population (counts per million).
 
 A small selection of countries, specifically chosen to compare with the UK. The dashed blue lines show the rage of the response variable chosen to align countries in time.
 
-```{r cumulative, fig.width=7, fig.height=4}
+```{r cumulative, fig.width=10, fig.height=4}
 readd(fig_shifted_cases_pop)
 readd(fig_shifted_deaths_pop)
 ```
@@ -54,17 +54,17 @@ readd(fig_shifted_deaths_pop)
 # Daily data
 
 
-Daily cases (top) and deaths (bottom) from a larger selection of countries. Green curves show a loess fit. The relative day is found using a time-alignment procedure described above.
+Daily cases (top) and deaths (bottom) from a larger selection of countries. Black step line shows weekly mean.
 
-```{r daily, fig.width=8, fig.height=5}
-readd(fig_daily_cases)
-readd(fig_daily_deaths)
+```{r daily, fig.width=10, fig.height=5}
+readd(fig_weekly_cases)
+readd(fig_weekly_deaths)
 ```
 
 
 ## Smoothed data
 
-These plots show smooth daily data from loess fits (green lines in above plots) plotted together.
+These plots show smooth daily data from loess fits plotted together.
 
 
 ```{r daily_fits, fig.width=6, fig.height=4}
@@ -77,29 +77,29 @@ readd(fig_daily_fits_deaths)
 
 A different selection of countries, where cases/deaths are still growing.
 
-```{r daily_bad, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
-readd(fig_daily_cases_2)
-readd(fig_daily_deaths_2)
+```{r daily_bad, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
+readd(fig_weekly_cases_2)
+readd(fig_weekly_deaths_2)
 ```
 
 ## Countries with potential second wave
 
 Countries with cases showing a possible second wave.
 
-```{r daily_secnd, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
-readd(fig_daily_cases_3)
-readd(fig_daily_deaths_3)
+```{r daily_secnd, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
+readd(fig_weekly_cases_3)
+readd(fig_weekly_deaths_3)
 ```
 
 ## Heatmaps
 
-Another representation of the same data. Cases and deaths (per million) for countries with at least 1000 cases per million and at least 50 deaths per million, respectively. Plots show smooth data (the same loess smoothing as above), ordered by the centre of gravity of each time course.
+Another representation of the same data. Cases and deaths (per million) for countries with at least 1000 cases per million and at least 50 deaths per million, respectively. Plots show weekly means, ordered by the centre of gravity of each time course.
 
-```{r heatmaps_cases, fig.width=6, fig.height=7}
+```{r heatmaps_cases, fig.width=6, fig.height=9}
 readd(fig_heatmap_cases)
 ```
 
-```{r heatmaps_deaths, fig.width=6, fig.height=5}
+```{r heatmaps_deaths, fig.width=6, fig.height=7}
 readd(fig_heatmap_deaths)
 ```
 
@@ -116,14 +116,10 @@ readd(fig_recent_daily_deaths)
 
 ## Global timeline
 
+The step line shows weekly average.
+
 ```{r global_timeline, fig.width=8, fig.height=4}
 readd(fig_global)
-```
-
-The same data in weekly sums, light grey points indicate not a full week, with count extrapolated to the full week.
-
-```{r global_timeline_weekly, fig.width=6, fig.height=5}
-readd(fig_global_weekly)
 ```
 
 ## EU, UK and USA comparison
@@ -181,21 +177,6 @@ The UK testing data includes number of people tested under Pillar 1 and number o
 readd(fig_testing_positives)
 ```
 
-# UK government hospital data
-
-This data comes from [Coronavirus staging](https://coronavirus-staging.data.gov.uk/) resource. The website provides more details on [how data were collected](https://coronavirus-staging.data.gov.uk/about-data). Here we simply combine some of their data sets into figures.
-
-## Cumulative cases and deaths in the UK
-
-```{r fig_stage_cumulative, fig.width=8, fig.height=4}
-readd(fig_stag_cumul)
-```
-
-## Hospital admissions, current patients and patients on ventillators
-
-```{r fig_stage_hosp, fig.width=6, fig.height=8}
-readd(fig_stag_hospital)
-```
 
 
 # Mortality excess

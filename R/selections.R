@@ -19,15 +19,15 @@ countries_2 <- c(
   "Argentina",
   "Colombia",
   "India",
-  "South Africa",
-  "Bolivia",
-  "Guatemala",
+  "Indonesia",
   "Iraq",
   "Kenya",
   "Kazakhstan",
   "Uzbekistan",
-  "Oman",
-  "Costa Rica"
+  "Moldova",
+  "Venezuela",
+  "Morocco",
+  "South Africa"
   
 )
 

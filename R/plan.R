@@ -33,6 +33,15 @@ plots <- drake_plan(
   
   fig_daily_cases_4 = plot_daily_cases_selection(covid, countries_4),
   
+  fig_weekly_deaths = plot_countries_weekly(covid, countries_day, what="deaths"),
+  fig_weekly_cases = plot_countries_weekly(covid, countries_day, what="cases"),
+  fig_weekly_deaths_2 = plot_countries_weekly(covid, countries_2, what="deaths"),
+  fig_weekly_cases_2 = plot_countries_weekly(covid, countries_2, what="cases"),
+  fig_weekly_deaths_3 = plot_countries_weekly(covid, countries_3, what="deaths"),
+  fig_weekly_cases_3 = plot_countries_weekly(covid, countries_3, what="cases"),
+  
+  fig_hysteresis = plot_hysteresis(covid, countries_day),
+  
   fig_daily_fits_cases = plot_daily_fits(covid, countries_day, what="cases", span=0.3),
   fig_daily_fits_deaths = plot_daily_fits(covid, countries_day, what="deaths", span=0.3),
   
@@ -62,8 +71,7 @@ plots <- drake_plan(
   fig_continents_cases = plot_continents(covid, "new_cases", brks=seq(0, 1e6, 50000)),
   fig_continents_deaths = plot_continents(covid, "new_deaths", brks=seq(0, 1e5, 1000)),
   
-  fig_global = plot_global(covid, span=0.2),
-  fig_global_weekly = plot_global_weekly(covid),
+  fig_global = plot_global(covid),
   fig_eu_uk_us = plot_eu_uk_us(covid),
   
   fig_scotland = plot_scotland_context(covid, 2491),
@@ -162,6 +170,6 @@ plan <- bind_rows(
   save_figures,
   testing,
   excess,
-  staging,
+  #staging,
   knit_report
 )
