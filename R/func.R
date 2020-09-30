@@ -68,17 +68,17 @@ read_ons <- function() {
 
 
 read_staging_data <- function() {
-  u <- 'https://api.coronavirus-staging.data.gov.uk/v1/data?filters=areaType=nation&structure={"date":"date","newDeathsByPublishDate":"newDeathsByPublishDate","newAdmissions":"newAdmissions","newCasesByPublishDate":"newCasesByPublishDate","hospitalCases":"hospitalCases","covidOccupiedMVBeds":"covidOccupiedMVBeds","areaName":"areaName"}&format=csv'
+  u <- "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newCasesBySpecimenDate%22:%22newCasesBySpecimenDate%22,%22cumCasesBySpecimenDate%22:%22cumCasesBySpecimenDate%22%7D&format=csv"
+  
+  #u <- 'https://api.coronavirus-staging.data.gov.uk/v1/data?filters=areaType=nation&structure={"date":"date","newDeathsByPublishDate":"newDeathsByPublishDate","newAdmissions":"newAdmissions","newCasesByPublishDate":"newCasesByPublishDate","hospitalCases":"hospitalCases","covidOccupiedMVBeds":"covidOccupiedMVBeds","areaName":"areaName"}&format=csv'
   read_csv(u) %>% 
     rename(
-      new_cases = newCasesByPublishDate,
-      new_deaths = newDeathsByPublishDate,
-      hospital_cases = hospitalCases,
-      new_admissions = newAdmissions,
-      mv_beds = covidOccupiedMVBeds,
-      nation = areaName
+      nation = areaName,
+      new_cases = newCasesBySpecimenDate,
     ) %>% 
-    drop_na()
+    drop_na() %>% 
+    left_join(uk_pop, by="nation") %>% 
+    mutate(new_cases_pop = 1e6 * new_cases / population)
 }
 
 
@@ -1345,7 +1345,8 @@ plot_global <- function(cvd) {
 plot_countries_weekly <- function(cvd, countries, what="cases") {
   d <- cvd %>%
     mutate(value = !!sym(glue("new_{what}_pop"))) %>% 
-    filter(country %in% countries & date >= as.Date("2020-02-15"))
+    filter(country %in% countries & date >= as.Date("2020-02-15")) %>% 
+    arrange(date)
   w <- d %>%
     mutate(week = lubridate::week(date)) %>%
     group_by(country, week) %>%
@@ -1372,11 +1373,51 @@ plot_countries_weekly <- function(cvd, countries, what="cases") {
     facet_wrap(~country, scale="free_y") +
     labs(x=NULL, y=glue("Daily {what} per million")) +
     scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)), limits=c(0, NA)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b")
+    scale_x_date(date_breaks = "2 months", date_labels = "%b")
+}
+
+
+plot_all_countries_weekly <- function(cvd, what="cases", limit=1000) {
+  d <- cvd %>%
+    mutate(value = !!sym(glue("new_{what}_pop"))) %>% 
+    filter(date >= as.Date("2020-02-15")) %>%
+    arrange(date)
+  ds <- d %>% 
+    group_by(country) %>% 
+    summarise(tot = sum(value)) %>% 
+    filter(tot >= limit)
+  w <- d %>%
+    filter(country %in% unique(ds$country)) %>% 
+    mutate(week = lubridate::week(date)) %>%
+    group_by(country, week) %>%
+    summarise(value = mean(value), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7)
+  # add one more point in cases and deaths for nice line ending
+  ww <- w %>% 
+    group_split(country) %>% 
+    map_dfr(function(x) {
+      x %>% 
+        add_row(week=last(x$week)+1,  value=last(x$value), week_date=last(x$week_date)+7, country=first(x$country))
+    })
+  
+  ggplot(ww, aes(x=week_date, y=value)) +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      panel.background = element_rect(fill="grey90", colour=NA)
+    ) +
+    geom_step() +
+    facet_wrap(~country, scale="free_y") +
+    labs(x=NULL, y=glue("Daily {what} per million")) +
+    scale_y_continuous(labels = scales::comma_format(big.mark = ',', decimal.mark = '.'), expand=expansion(mult=c(0,0.05)), limits=c(0, NA)) +
+    scale_x_date(date_breaks = "2 months", date_labels = "%b")
 }
 
 
 plot_hysteresis <- function(cvd, countries) {
+  brk <- seq.Date(as.Date("2020-01-01"), as.Date("2020-12-01"), by = "1 month")
+  lbs <- format(brk, "%b")
   cvd %>%
     filter(country %in% countries & date >= as.Date("2020-02-15")) %>%
     mutate(week = lubridate::week(date)) %>%
@@ -1391,10 +1432,10 @@ plot_hysteresis <- function(cvd, countries) {
     geom_point(size=0.5) +
     facet_wrap(~country, scales="free") +
     #scale_colour_viridis_c(trans="date", option="cividis") +
-    scale_colour_distiller(palette="RdYlBu", trans="date") +
+    scale_colour_distiller(palette="RdYlBu", trans="date", breaks=brk, labels=lbs) +
     scale_x_continuous(expand = expansion(mult = c(0.02, 0.05)), limits=c(0, NA)) +
     scale_y_continuous(expand = expansion(mult = c(0.02, 0.05)), limits=c(0, NA)) +
-    labs(x="Weekly cases per million", y = "Weekly deaths per million", colour="Date")
+    labs(x="Weekly cases per million", y = "Weekly deaths per million", colour="Week starting on")
 }
 
 plot_eu_uk_us <- function(cvd) {
@@ -1430,4 +1471,52 @@ plot_scotland_context <- function(cvd, scot_deaths) {
     scale_fill_manual(values=c("grey30", "#0065BF")) +
     theme(legend.position = "none", panel.grid = element_blank()) +
     labs(x="Deaths per million", y=NULL)
+}
+
+extract_wave <- function(cvd, start, end, val.min, val.max, base_country) {
+  cvds <- cvd %>% 
+    filter(date >= start & date <= end) %>% 
+    group_by(country) %>% 
+    mutate(cases_pop = cumsum(new_cases_pop)) %>%
+    ungroup() %>% 
+    filter(cases_pop > 0)
+  shifts <- linear_shifts(cvds, what="cases_pop", val.min=val.min, val.max=val.max, base_country = base_country)
+  cvds %>%
+    left_join(shifts, by="country") %>% 
+    mutate(day = as.integer(date) - shift - ref) %>% 
+    filter(day > 0)
+}
+
+plot_waves <- function(cvd, countries, second_start = "2020-07-12", base_country = "Spain", val.min=20, val.max=70) {
+  
+  cd <- cvd %>% 
+    filter(country %in% countries & cases_pop > val.min) %>% 
+    select(date, country, new_cases_pop) %>% 
+    mutate(country = factor(country, levels=countries))
+  first_start <- min(cd$date)
+  second_start <- as.Date(second_start)
+  first_end <- Sys.Date() - second_start + first_start
+  
+  cd1 <- extract_wave(cd, first_start, first_end, val.min, val.max, base_country) %>% 
+    mutate(wave = "First wave")
+  cd2 <- extract_wave(cd, second_start, Sys.Date(), val.min, val.max, base_country) %>% 
+    mutate(wave = "Second wave")
+  
+  bind_rows(cd1, cd2) %>% 
+  ggplot(aes(x=day, y=cases_pop, colour=country, shape=country)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.key.size = unit(0.4, "cm"),
+      legend.title=element_blank()
+    ) +
+    geom_line(size=0.1) +
+    geom_point(size=0.5) +
+    facet_wrap(~wave) +
+    #scale_y_continuous(expand=expansion(mult=c(0, 0.03))) +
+    scale_y_log10() +
+    labs(x="Relative day", y="Cases per million") +
+    scale_colour_manual(values=okabe_ito_palette) +
+    scale_shape_manual(values=shapes) 
+  
 }

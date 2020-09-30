@@ -61,35 +61,32 @@ readd(fig_weekly_cases)
 readd(fig_weekly_deaths)
 ```
 
+## Hysteresis
+
+```{r hysteresis, fig.width=8, fig.height=6}
+readd(fig_hysteresis)
+```
+
 
 ## Smoothed data
 
 These plots show smooth daily data from loess fits plotted together.
 
 
-```{r daily_fits, fig.width=6, fig.height=4}
+```{r daily_fits, fig.width=10, fig.height=8}
 readd(fig_daily_fits_cases)
 readd(fig_daily_fits_deaths)
 ```
 
 
-## Countries with growing cases/deaths
+## UK nations
 
-A different selection of countries, where cases/deaths are still growing.
+Data from UK government website.
 
-```{r daily_bad, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
-readd(fig_weekly_cases_2)
-readd(fig_weekly_deaths_2)
+```{r weekly_uk, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
+readd(fig_weekly_uk)
 ```
 
-## Countries with potential second wave
-
-Countries with cases showing a possible second wave.
-
-```{r daily_secnd, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
-readd(fig_weekly_cases_3)
-readd(fig_weekly_deaths_3)
-```
 
 ## Heatmaps
 
@@ -160,22 +157,6 @@ South Korea has a remarkable small number of deaths. It is a country with size a
 readd(fig_uk_korea_excess)
 ```
 
-
-
-# UK government testing data
-
-The source for this data is
-
-[`r readd(url_testing)`](`r readd(url_testing)`)
-
-These data contain time series of COVID-19 testing in all four nations of the UK. Here, we show results for Pillar 1 (swab testing in PHE labs and NHS hospitals for those with a clinical need, and health and care workers). Data from Wales contain Pillar 1 and 2 (swab testing for the wider population aged 5 and over), so we don't show it as it is inconsistent with other nations.
-
-The UK testing data includes number of people tested under Pillar 1 and number of positives. These figures are consistent between three nations and can be compared (though they don't include positives outside labs/hospitals).
-
-```{r fig_testing, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
-#readd(fig_testing_people)
-readd(fig_testing_positives)
-```
 
 
 

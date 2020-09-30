@@ -19,6 +19,8 @@ plots <- drake_plan(
   fig_cases_deaths_both = plot_grid(fig_cases_deaths, fig_cases_deaths_pop, nrow=1),
   fig_eu = plot_cases_diff_deaths(covid_europe, pop=TRUE, x.min=0.1),
   
+  fig_waves = plot_waves(covid, countries_sel),
+  
   fig_daily_deaths = plot_daily(covid, countries_day, what="deaths", span=0.3),
   fig_daily_deaths_fixed = plot_daily(covid, countries_day, what="deaths", span=0.3, scls="fixed", ymax=30),
   fig_daily_cases = plot_daily(covid, countries_day, what="cases", span=0.3),
@@ -39,6 +41,9 @@ plots <- drake_plan(
   fig_weekly_cases_2 = plot_countries_weekly(covid, countries_2, what="cases"),
   fig_weekly_deaths_3 = plot_countries_weekly(covid, countries_3, what="deaths"),
   fig_weekly_cases_3 = plot_countries_weekly(covid, countries_3, what="cases"),
+  
+  fig_weekly_all_cases = plot_all_countries_weekly(covid, what="cases", limit=1000),
+  fig_weekly_all_deaths = plot_all_countries_weekly(covid, what="deaths", limit=100),
   
   fig_hysteresis = plot_hysteresis(covid, countries_day),
   
@@ -74,8 +79,9 @@ plots <- drake_plan(
   fig_global = plot_global(covid),
   fig_eu_uk_us = plot_eu_uk_us(covid),
   
-  fig_scotland = plot_scotland_context(covid, 2491),
-  fig_scotland_similar = plot_scotland_context(covid %>% filter(population>2e6 & population<10e6 & gdp> 10000), 2491)
+  scotland_deaths = 2512,
+  fig_scotland = plot_scotland_context(covid, scotland_deaths),
+  fig_scotland_similar = plot_scotland_context(covid %>% filter(population>2e6 & population<10e6 & gdp> 10000), scotland_deaths)
 )
 
 figs <- plots %>% 
@@ -93,7 +99,9 @@ figs <- plots %>%
   mutate(height = if_else(str_detect(name, "heatmap"), 6, height)) %>% 
   mutate(height = if_else(str_detect(name, "scotland"), 6, height)) %>% 
   mutate(height = if_else(str_detect(name, "cases_4"), 7, height)) %>% 
-  mutate(width = if_else(str_detect(name, "cases_4"), 8, width))
+  mutate(width = if_else(str_detect(name, "cases_4"), 8, width)) %>% 
+  mutate(width = if_else(str_detect(name, "weekly_all"), 15, width)) %>% 
+  mutate(height = if_else(str_detect(name, "weekly_all"), 10, width))
 
 save_figures <- drake_plan(
   figures = target(
@@ -148,11 +156,14 @@ excess <- drake_plan(
 
 staging <- drake_plan(
   stag = read_staging_data(),
-  fig_stag_cumul = plot_staging_cumul(stag),
-  fig_stag_hospital = plot_staging_hospitals(stag),
+  fig_weekly_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation),
+  save_fig_weekly_uk = annotate_save("fig/weekly_uk.png", fig_weekly_uk, "https://coronavirus.data.gov.uk", width=6, height=4)
   
-  save_fig_stag_cumul = annotate_save("fig/stag_cumul.png", fig_stag_cumul, "https://coronavirus-staging.data.gov.uk", width=8, height=4),
-  save_fig_stag_hospital = annotate_save("fig/stag_hospital.png", fig_stag_hospital, "https://coronavirus-staging.data.gov.uk", width=7, height=6)
+  #fig_stag_cumul = plot_staging_cumul(stag),
+  #fig_stag_hospital = plot_staging_hospitals(stag),
+  
+  #save_fig_stag_cumul = annotate_save("fig/stag_cumul.png", fig_stag_cumul, "https://coronavirus-staging.data.gov.uk", width=8, height=4),
+  #save_fig_stag_hospital = annotate_save("fig/stag_hospital.png", fig_stag_hospital, "https://coronavirus-staging.data.gov.uk", width=7, height=6)
 )
 
 
@@ -170,6 +181,6 @@ plan <- bind_rows(
   save_figures,
   testing,
   excess,
-  #staging,
+  staging,
   knit_report
 )
