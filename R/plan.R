@@ -156,8 +156,11 @@ excess <- drake_plan(
 
 staging <- drake_plan(
   stag = read_staging_data(),
-  fig_weekly_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation),
-  save_fig_weekly_uk = annotate_save("fig/weekly_uk.png", fig_weekly_uk, "https://coronavirus.data.gov.uk", width=6, height=4)
+  last_date_stag = stag %>% pull(date) %>% max(),
+  fig_weekly_cases_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation),
+  fig_weekly_admissions_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation, what="admissions"),
+  save_fig_weekly_cases_uk = annotate_save("fig/weekly_cases_uk.png", fig_weekly_cases_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
+  save_fig_weekly_admissions_uk = annotate_save("fig/weekly_admissions_uk.png", fig_weekly_admissions_uk, "https://coronavirus.data.gov.uk", width=6, height=4)
   
   #fig_stag_cumul = plot_staging_cumul(stag),
   #fig_stag_hospital = plot_staging_hospitals(stag),

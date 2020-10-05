@@ -68,17 +68,22 @@ read_ons <- function() {
 
 
 read_staging_data <- function() {
-  u <- "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22newCasesBySpecimenDate%22:%22newCasesBySpecimenDate%22,%22cumCasesBySpecimenDate%22:%22cumCasesBySpecimenDate%22%7D&format=csv"
+  u <- 'https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation&structure={"areaType":"areaType","areaName":"areaName","areaCode":"areaCode","date":"date","newCasesBySpecimenDate":"newCasesBySpecimenDate","cumCasesBySpecimenDate":"cumCasesBySpecimenDate","hospitalCases":"hospitalCases","newAdmissions":"newAdmissions"}&format=csv'
   
-  #u <- 'https://api.coronavirus-staging.data.gov.uk/v1/data?filters=areaType=nation&structure={"date":"date","newDeathsByPublishDate":"newDeathsByPublishDate","newAdmissions":"newAdmissions","newCasesByPublishDate":"newCasesByPublishDate","hospitalCases":"hospitalCases","covidOccupiedMVBeds":"covidOccupiedMVBeds","areaName":"areaName"}&format=csv'
   read_csv(u) %>% 
     rename(
       nation = areaName,
       new_cases = newCasesBySpecimenDate,
+      hospital_cases = hospitalCases,
+      new_admissions = newAdmissions
     ) %>% 
     drop_na() %>% 
     left_join(uk_pop, by="nation") %>% 
-    mutate(new_cases_pop = 1e6 * new_cases / population)
+    mutate(
+      new_cases_pop = 1e6 * new_cases / population,
+      hospital_cases_pop = 1e6 * hospital_cases / population,
+      new_admissions_pop = 1e6 * new_admissions / population
+    )
 }
 
 
