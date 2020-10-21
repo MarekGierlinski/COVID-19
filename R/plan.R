@@ -98,10 +98,12 @@ figs <- plots %>%
   mutate(height = if_else(str_detect(name, "new"), 10, height)) %>% 
   mutate(height = if_else(str_detect(name, "heatmap"), 6, height)) %>% 
   mutate(height = if_else(str_detect(name, "scotland"), 6, height)) %>% 
-  mutate(height = if_else(str_detect(name, "cases_4"), 7, height)) %>% 
-  mutate(width = if_else(str_detect(name, "cases_4"), 8, width)) %>% 
+  mutate(width = if_else(str_detect(name, "weekly_(cases|deaths)"), 8, width)) %>% 
+  mutate(height = if_else(str_detect(name, "weekly_(cases|deaths)"), 6, height)) %>% 
   mutate(width = if_else(str_detect(name, "weekly_all"), 15, width)) %>% 
-  mutate(height = if_else(str_detect(name, "weekly_all"), 10, width))
+  mutate(height = if_else(str_detect(name, "weekly_all"), 10, height)) %>% 
+  mutate(width = if_else(str_detect(name, "hysteresis"), 7, width)) %>% 
+  mutate(height = if_else(str_detect(name, "hysteresis"), 5, height))
 
 save_figures <- drake_plan(
   figures = target(
@@ -159,8 +161,13 @@ staging <- drake_plan(
   last_date_stag = stag %>% pull(date) %>% max(),
   fig_weekly_cases_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation),
   fig_weekly_admissions_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation, what="admissions"),
+  fig_weekly_deaths_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation, what="deaths"),
+  fig_stag_uk = plot_admissions_cases_deaths(stag),
+  
   save_fig_weekly_cases_uk = annotate_save("fig/weekly_cases_uk.png", fig_weekly_cases_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
-  save_fig_weekly_admissions_uk = annotate_save("fig/weekly_admissions_uk.png", fig_weekly_admissions_uk, "https://coronavirus.data.gov.uk", width=6, height=4)
+  save_fig_weekly_admissions_uk = annotate_save("fig/weekly_admissions_uk.png", fig_weekly_admissions_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
+  save_fig_weekly_deaths_uk = annotate_save("fig/weekly_deaths_uk.png", fig_weekly_deaths_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
+  save_fig_stag_uk = annotate_save("fig/weekly_stag_uk.png", fig_stag_uk, "https://coronavirus.data.gov.uk", width=8, height=5)
   
   #fig_stag_cumul = plot_staging_cumul(stag),
   #fig_stag_hospital = plot_staging_hospitals(stag),

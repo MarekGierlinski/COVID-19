@@ -68,21 +68,23 @@ read_ons <- function() {
 
 
 read_staging_data <- function() {
-  u <- 'https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation&structure={"areaType":"areaType","areaName":"areaName","areaCode":"areaCode","date":"date","newCasesBySpecimenDate":"newCasesBySpecimenDate","cumCasesBySpecimenDate":"cumCasesBySpecimenDate","hospitalCases":"hospitalCases","newAdmissions":"newAdmissions"}&format=csv'
+  u <- 'https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation&structure={"areaType":"areaType","areaName":"areaName","areaCode":"areaCode","date":"date","newCasesBySpecimenDate":"newCasesBySpecimenDate","cumCasesBySpecimenDate":"cumCasesBySpecimenDate","hospitalCases":"hospitalCases","newAdmissions":"newAdmissions","newDeaths28DaysByDeathDate":"newDeaths28DaysByDeathDate"}&format=csv'
   
   read_csv(u) %>% 
     rename(
       nation = areaName,
       new_cases = newCasesBySpecimenDate,
       hospital_cases = hospitalCases,
-      new_admissions = newAdmissions
+      new_admissions = newAdmissions,
+      new_deaths = newDeaths28DaysByDeathDate
     ) %>% 
     drop_na() %>% 
     left_join(uk_pop, by="nation") %>% 
     mutate(
       new_cases_pop = 1e6 * new_cases / population,
       hospital_cases_pop = 1e6 * hospital_cases / population,
-      new_admissions_pop = 1e6 * new_admissions / population
+      new_admissions_pop = 1e6 * new_admissions / population,
+      new_deaths_pop = 1e6 * new_deaths / population
     )
 }
 
@@ -1524,4 +1526,41 @@ plot_waves <- function(cvd, countries, second_start = "2020-07-12", base_country
     scale_colour_manual(values=okabe_ito_palette) +
     scale_shape_manual(values=shapes) 
   
+}
+
+
+plot_admissions_cases_deaths <- function(stag) {
+  stag_uk <- stag %>%
+    group_by(date) %>%
+    summarise(new_admissions = sum(new_admissions), new_cases = sum(new_cases), new_deaths = sum(new_deaths), n = n()) %>% 
+    filter(n == 4) %>% 
+    select(-n) %>% 
+    pivot_longer(-date) %>% 
+    mutate(name = name %>% str_remove("new_") %>% str_to_title) %>% 
+    mutate(name = factor(name, levels=c("Cases", "Admissions", "Deaths")))
+  w <- stag_uk %>%
+    mutate(week = lubridate::week(date)) %>%
+    group_by(name, week) %>%
+    summarise(value = mean(value), n = n(), week_date = first(date)) %>% 
+    ungroup() %>% 
+    filter(n == 7)
+  # add one more point in cases and deaths for nice line ending
+  ww <- w %>% 
+    group_split(name) %>% 
+    map_dfr(function(x) {
+      x %>% 
+        add_row(week=last(x$week)+1,  value=last(x$value), week_date=last(x$week_date)+7, name=first(x$name))
+    })
+  
+  ggplot() +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank()
+    ) +
+    scale_y_log10(label=scales::comma) +
+    geom_step(data=stag_uk, aes(x=date, y=value, colour=name), alpha=0.3) +
+    geom_step(data=ww, aes(x=week_date, y=value, colour=name), size=1) +
+    scale_colour_manual(values=okabe_ito_palette) +
+    labs(x=NULL, y="Daily count", colour=NULL) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%b")
 }

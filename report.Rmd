@@ -86,6 +86,8 @@ Data from [UK government website](https://coronavirus.data.gov.uk). Daily cases 
 ```{r weekly_uk, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
 readd(fig_weekly_cases_uk)
 readd(fig_weekly_admissions_uk)
+readd(fig_weekly_deaths_uk)
+readd(fig_stag_uk)
 ```
 
 

@@ -13,7 +13,7 @@ countries_day <- c(
   "Netherlands",
   "Ireland",
   "Switzerland",
-  "Canada"
+  "Czechia"
 )
 countries_2 <- c(
   "Argentina",
