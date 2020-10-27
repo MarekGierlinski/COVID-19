@@ -1528,9 +1528,8 @@ plot_waves <- function(cvd, countries, second_start = "2020-07-12", base_country
   
 }
 
-
-plot_admissions_cases_deaths <- function(stag) {
-  stag_uk <- stag %>%
+sum_stag <- function(stag) {
+  stag %>%
     group_by(date) %>%
     summarise(new_admissions = sum(new_admissions), new_cases = sum(new_cases), new_deaths = sum(new_deaths), n = n()) %>% 
     filter(n == 4) %>% 
@@ -1538,6 +1537,10 @@ plot_admissions_cases_deaths <- function(stag) {
     pivot_longer(-date) %>% 
     mutate(name = name %>% str_remove("new_") %>% str_to_title) %>% 
     mutate(name = factor(name, levels=c("Cases", "Admissions", "Deaths")))
+}
+
+plot_admissions_cases_deaths <- function(stag) {
+  stag_uk <- sum_stag(stag)
   w <- stag_uk %>%
     mutate(week = lubridate::week(date)) %>%
     group_by(name, week) %>%
@@ -1563,4 +1566,62 @@ plot_admissions_cases_deaths <- function(stag) {
     scale_colour_manual(values=okabe_ito_palette) +
     labs(x=NULL, y="Daily count", colour=NULL) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b")
+}
+
+
+
+plot_stag_derivative <- function(stag, what="Deaths", start.date="2020-09-01", span=2, title="") {
+  stag_uk <- sum_stag(stag)
+  d <- stag_uk %>%
+    filter(name == what & date >= as.Date(start.date)) %>% 
+    mutate(lval = log2(value), days = as.integer(date)) %>% 
+    mutate(date = as.POSIXct(date, tz="UTC", origin="1970-01-01"))
+  fit <- loess(lval ~ days, data=d, span=span)
+  xs <- seq(min(d$days), max(d$days), 0.1)
+  pred_loess <- predict(fit, tibble(days=xs), se=TRUE) 
+  pred <- tibble(
+    x = xs,
+    date = as.POSIXct(x * 86400, tz="UTC", origin="1970-01-01"),
+    y = pred_loess$fit,
+    se = pred_loess$se.fit,
+    y_lo = y - se,
+    y_up = y + se
+  )
+  dif <- tibble(
+    x = rowMeans(embed(xs, 2)),
+    y = diff(pred$y) / diff(pred$x),
+    dbl = 1 / y,
+    date = as.POSIXct(x * 86400, tz="UTC", origin="1970-01-01")
+  )
+
+  xlim <- 86400 * c(min(xs), max(xs))
+  xlim <- as.POSIXct(xlim, tz="UTC", origin="1970-01-01")
+  
+  
+  g1 <- ggplot(d) +
+    theme_bw() +
+    geom_point(aes(x=date, y = value)) +
+    geom_line(data=pred, aes(x=date, y = 2^y)) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.margin = unit(c(0.5,-0.5,0.5,0.5), unit="cm")
+    ) +
+    labs(x=NULL, y=glue::glue("{what}"), title=title) +
+    scale_x_datetime(limits=xlim) +
+    scale_y_continuous(expand=expansion(mult=c(0,0.05)), limits=c(1e-6,NA))
+  g2 <- ggplot(dif, aes(x=date, y=dbl)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank(),
+      plot.margin = unit(c(-0.4,0.5,0.5,0.5), unit="cm")
+    ) +
+    geom_line() +
+    labs(x = NULL, y = "Doubling time (days)") +
+    xlim(xlim) +
+    scale_y_continuous(expand=expansion(mult=c(0,0.05)), limits=c(0,NA))
+  plot_grid(g1, g2, ncol=1, rel_heights = c(1,0.6), align="v")
+  
 }

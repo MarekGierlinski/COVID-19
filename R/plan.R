@@ -163,11 +163,15 @@ staging <- drake_plan(
   fig_weekly_admissions_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation, what="admissions"),
   fig_weekly_deaths_uk = stag %>% rename(country = nation) %>% plot_countries_weekly(uk_pop$nation, what="deaths"),
   fig_stag_uk = plot_admissions_cases_deaths(stag),
+  fig_stag_dbl_deaths = plot_stag_derivative(stag, what="Deaths"),
+  fig_stag_dbl_admissions = plot_stag_derivative(stag, what="Admissions"),
   
   save_fig_weekly_cases_uk = annotate_save("fig/weekly_cases_uk.png", fig_weekly_cases_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
   save_fig_weekly_admissions_uk = annotate_save("fig/weekly_admissions_uk.png", fig_weekly_admissions_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
   save_fig_weekly_deaths_uk = annotate_save("fig/weekly_deaths_uk.png", fig_weekly_deaths_uk, "https://coronavirus.data.gov.uk", width=6, height=4),
-  save_fig_stag_uk = annotate_save("fig/weekly_stag_uk.png", fig_stag_uk, "https://coronavirus.data.gov.uk", width=8, height=5)
+  save_fig_stag_uk = annotate_save("fig/weekly_stag_uk.png", fig_stag_uk, "https://coronavirus.data.gov.uk", width=8, height=5),
+  save_fig_stag_dbl_deaths = annotate_save("fig/stag_dbl_deahts.png", fig_stag_dbl_deaths, "https://coronavirus.data.gov.uk", width=6, height=6),
+  save_fig_stag_dbl_admissions = annotate_save("fig/stag_dbl_admissions.png", fig_stag_dbl_admissions, "https://coronavirus.data.gov.uk", width=6, height=6)
   
   #fig_stag_cumul = plot_staging_cumul(stag),
   #fig_stag_hospital = plot_staging_hospitals(stag),
